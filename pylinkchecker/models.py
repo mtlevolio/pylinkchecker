@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Contains the main crawling logic.
+Contains the main crawling models: configuration, input, site, urls.
 """
 from __future__ import unicode_literals, absolute_import
 

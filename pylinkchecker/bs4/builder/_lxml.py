@@ -7,15 +7,15 @@ from io import BytesIO
 from StringIO import StringIO
 import collections
 from lxml import etree
-from bs4.element import Comment, Doctype, NamespacedAttribute
-from bs4.builder import (
+from pylinkchecker.bs4.element import Comment, Doctype, NamespacedAttribute
+from pylinkchecker.bs4.builder import (
     FAST,
     HTML,
     HTMLTreeBuilder,
     PERMISSIVE,
     TreeBuilder,
     XML)
-from bs4.dammit import UnicodeDammit
+from pylinkchecker.bs4.dammit import UnicodeDammit
 
 LXML = 'lxml'
 

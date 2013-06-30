@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Contains the main crawling logic.
+Contains the crawling logic.
 """
 from __future__ import unicode_literals, absolute_import
 
