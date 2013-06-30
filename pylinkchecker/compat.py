@@ -8,5 +8,7 @@ import sys
 
 if sys.version_info[0] < 3:
     range = xrange
+    import urlparse
 else:
     range = range
+    import urllib.parse as urlparse
