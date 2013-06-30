@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Contains the main crawling models: configuration, input, site, urls.
+Contains the crawling models.
 """
 from __future__ import unicode_literals, absolute_import
 
 from collections import namedtuple
 from optparse import OptionParser, OptionGroup
+
+from pylinkchecker.urlutil import get_clean_url_split
 
 
 DEFAULT_TYPES = ['a', 'img', 'script', 'link']
@@ -58,10 +60,8 @@ class Config(object):
         """Build the options and args based on the command line options."""
         (self.options, self.start_urls) = self.parser.parse_args()
         self.worker_config = self._build_worker_config(self.options)
-
-        if self.options.accepted_hosts:
-            # TODO Merge hosts of start_urls too
-            self.accepted_hosts = self.options.accepted_hosts.split(',')
+        self.accepted_hosts = self._build_accepted_hosts(self.options,
+            self.start_urls)
 
         if self.options.ignored_prefixes:
            self.ignored_prefixes = self.options.ignored_prefixes.split(',')
@@ -79,6 +79,20 @@ class Config(object):
                         .format(element_type))
 
         return WorkerConfig(options.username, options.password, types)
+
+    def _build_accepted_hosts(self, options, start_urls):
+        hosts = set()
+        urls = []
+
+        if self.options.accepted_hosts:
+            urls = self.options.accepted_hosts.split(',')
+        urls = urls + start_urls
+
+        for url in urls:
+            split_result = get_clean_url_split(url)
+            hosts.add(split_result.netloc)
+
+        return hosts
 
     def _build_parser(self):
         # avoid circular references
@@ -113,6 +127,7 @@ class Config(object):
             default=False)
         crawler_group.add_option("-t", "--types", dest="types", action="store",
             default=",".join(DEFAULT_TYPES))
+        # TODO Add follow redirect option.
 
         parser.add_option_group(crawler_group)
 

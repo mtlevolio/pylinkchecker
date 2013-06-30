@@ -9,6 +9,10 @@ import sys
 if sys.version_info[0] < 3:
     range = xrange
     import urlparse
+    import SimpleHTTPServer
+    import SocketServer
 else:
     range = range
     import urllib.parse as urlparse
+    import http.server as SimpleHTTPServer
+    import socketserver as SocketServer
