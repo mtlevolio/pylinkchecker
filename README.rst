@@ -11,19 +11,15 @@ resources like images.
 Requirements
 ------------
 
-pylinkchecker does not require external libraries. It has been tested on python
-2.6, python 2.7, and python 3.3.
+pylinkchecker requires beautifulsoup4. It should be installed automatically if
+you use pip or easy_install. pylinkchecker has been tested on python 2.6, python
+2.7, and python 3.3.
 
 
 Optional Requirements
 ---------------------
 
 These libraries must be installed to enable certain modes in pylinkchecker:
-
-beautifulsoup4
-  pylinkchecker embeds its own version of beautifulsoup4 for convenience, but if
-  it finds a more recent version of beautifulsoup4 on the PYTHONPATH, it will
-  use this one.
 
 lxml
   beautifulsoup can use lxml to speed up the parsing of HTML pages. Because

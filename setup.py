@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 version = __import__('pylinkchecker').__version__
 
+requires = ['beautifulsoup4>=4.2.0']
 setup(
     name='pylinkchecker',
     version=version,
@@ -33,4 +37,5 @@ resources like images.
         'Topic :: Internet :: WWW/HTTP :: Site Management :: Link Checking',
         'Topic :: Utilities',
     ],
+    install_requires=requires,
 )

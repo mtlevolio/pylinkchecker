@@ -20,3 +20,14 @@ class URLUtilTest(unittest.TestCase):
     def test_clean_url_split(self):
         self.assertEqual("http://www.perdu.com",
             get_clean_url_split("www.perdu.com").geturl())
+        self.assertEqual("http://www.perdu.com",
+            get_clean_url_split("//www.perdu.com").geturl())
+        self.assertEqual("http://www.perdu.com",
+            get_clean_url_split("http://www.perdu.com").geturl())
+
+        self.assertEqual("http://www.perdu.com/",
+            get_clean_url_split("www.perdu.com/").geturl())
+        self.assertEqual("http://www.perdu.com/",
+            get_clean_url_split("//www.perdu.com/").geturl())
+        self.assertEqual("http://www.perdu.com/",
+            get_clean_url_split("http://www.perdu.com/").geturl())

@@ -25,7 +25,7 @@ def get_clean_url_split(url):
 
     if not split_result.scheme:
         if split_result.netloc:
-            url = SCHEME_HTTP + url
+            url = SCHEME_HTTP + ":" + url
         else:
             url = SCHEME_HTTP + "://" + url
         split_result = urlparse.urlsplit(url)
