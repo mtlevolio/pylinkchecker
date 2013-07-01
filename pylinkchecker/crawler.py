@@ -6,8 +6,11 @@ from __future__ import unicode_literals, absolute_import
 
 import sys
 
-from pylinkchecker.compat import range, HTTPError
-from pylinkchecker.models import (Config, WorkerInit, Response, DEFAULT_TIMEOUT)
+from bs4 import BeautifulSoup
+
+from pylinkchecker.compat import range, HTTPError, get_url_open
+from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
+        ExceptionStr)
 
 
 WORK_DONE = '__WORK_DONE__'
@@ -101,15 +104,70 @@ class PageCrawler(object):
         self.worker_config = worker_init.worker_config
         self.input_queue = worker_init.input_queue
         self.output_queue = worker_init.output_queue
+        self.urlopen = get_url_open()
+
+        # We do this here to allow patching by gevent
+        import socket
+        self.timeout_exception = socket.timeout
 
     def crawl_pages(self):
-        url_to_crawl = self.input_queue.get()
+        url_split_to_crawl = self.input_queue.get()
 
-        if url_to_crawl == WORK_DONE:
+        if url_split_to_crawl == WORK_DONE:
             # No more work! Pfew!
             return
 
-        self.output_queue.put("")
+        try:
+
+            response = open_url(self.urlopen, url_split_to_crawl.geturl(),
+                    self.worker_config.timeout, self.timeout_exception)
+
+            if response.exception:
+                if response.status:
+                    # This is a http error. Good.
+                    page_crawl = PageCrawl(
+                            original_url_split=url_split_to_crawl,
+                            final_url_split=None, status=response.status,
+                            is_timeout=False, is_redirect=False, links=None,
+                            exception=None)
+                elif response.is_timeout:
+                    # This is a timeout. No need to wrap the exception
+                    page_crawl = PageCrawl(
+                            original_url_split=url_split_to_crawl,
+                            final_url_split=None, status=None,
+                            is_timeout=True, is_redirect=False, links=None,
+                            exception=None)
+                else:
+                    exception = ExceptionStr(unicode(type(response.exception)),
+                        unicode(response.exception))
+                    page_crawl = PageCrawl(
+                            original_url_split=url_split_to_crawl,
+                            final_url_split=None, status=None,
+                            is_timeout=False, is_redirect=False, links=None,
+                            exception=exception)
+            else:
+                final_url_split = get_clean_url_split(response.final_url)
+
+                html_soup = BeautifulSoup(response.content,
+                        self.worker_config.parser)
+                links = self.get_links(html_soup)
+        except Exception as exc:
+            exception = ExceptionStr(unicode(type(exc)), unicode(exc))
+            page_crawl = PageCrawl(original_url_split=url_split_to_crawl,
+                    final_url_split=None, status=None,
+                    is_timeout=False, is_redirect=False, links=None,
+                    exception=exception)
+
+
+
+        # get page
+        # if errors, return error
+        # else, parse page
+        # categorize all links (no duplication detection)
+        # return
+
+
+        self.output_queue.put(page_crawl)
 
 
 def crawl_page(worker_init):

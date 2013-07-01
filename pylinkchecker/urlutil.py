@@ -30,3 +30,15 @@ def get_clean_url_split(url):
         split_result = urlparse.urlsplit(url)
 
     return split_result
+
+
+def get_absolute_url(url, base_url_split):
+    """Returns a SplitResult containing the new URL.
+
+    :param url: The url (relative or absolute).
+    :param base_url_split: THe SplitResult of the base URL.
+    :rtype: A SplitResult
+    """
+    new_url = urlparse.urljoin(base_url_split.geturl(), url)
+
+    return get_clean_url_split(new_url)

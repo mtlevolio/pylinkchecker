@@ -13,7 +13,7 @@ import unittest
 from pylinkchecker.crawler import open_url
 from pylinkchecker.compat import SocketServer, SimpleHTTPServer, get_url_open
 from pylinkchecker.models import Config
-from pylinkchecker.urlutil import get_clean_url_split
+from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url
 
 
 TEST_FILES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -63,6 +63,18 @@ class URLUtilTest(unittest.TestCase):
         self.assertEqual("http://www.example.com/",
             get_clean_url_split("http://www.example.com/").geturl())
 
+    def test_get_absolute_url(self):
+        base_url_split = get_clean_url_split(
+                "https://www.example.com/hello/index.html")
+        self.assertEqual("https://www.example2.com/test.js",
+            get_absolute_url("//www.example2.com/test.js", base_url_split).
+            geturl())
+        self.assertEqual("https://www.example.com/hello2/test.html",
+            get_absolute_url("/hello2/test.html", base_url_split).geturl())
+        self.assertEqual("https://www.example.com/hello/test.html",
+            get_absolute_url("test.html", base_url_split).geturl())
+        self.assertEqual("https://www.example.com/test.html",
+            get_absolute_url("../test.html", base_url_split).geturl())
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     pass
@@ -73,7 +85,7 @@ def start_http_server():
     # For the http handler
     os.chdir(TEST_FILES_DIR)
     handler = SimpleHTTPServer.SimpleHTTPRequestHandler
-    httpd = SocketServer.TCPServer(("localhost", 0), handler)
+    httpd = ThreadedTCPServer(("localhost", 0), handler)
     ip, port = httpd.server_address
 
     httpd_thread = threading.Thread(target=httpd.serve_forever)
@@ -113,7 +125,7 @@ class CrawlerTest(unittest.TestCase):
         urlopen = get_url_open()
         import socket
         url = self.get_url("/does_not_exist.html")
-        response = open_url(urlopen, url, 10, socket.timeout)
+        response = open_url(urlopen, url, 5, socket.timeout)
 
         self.assertEqual(404, response.status)
         self.assertTrue(response.exception is not None)
@@ -122,7 +134,16 @@ class CrawlerTest(unittest.TestCase):
         urlopen = get_url_open()
         import socket
         url = self.get_url("/index.html")
-        response = open_url(urlopen, url, 10, socket.timeout)
+        response = open_url(urlopen, url, 5, socket.timeout)
 
         self.assertEqual(200, response.status)
         self.assertTrue(response.exception is None)
+
+    def test_301(self):
+        urlopen = get_url_open()
+        import socket
+        url = self.get_url("/sub")
+        response = open_url(urlopen, url, 5, socket.timeout)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response.is_redirect)

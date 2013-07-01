@@ -46,12 +46,21 @@ WorkerInit = namedtuple("WorkerInit", ["worker_config", "input_queue",
 
 
 WorkerConfig = namedtuple("WorkerConfig", ["username", "password", "types",
-        "timeout"])
+        "timeout", "parser"])
 
 
 Response = namedtuple("Response", ["content", "status", "exception",
         "original_url", "final_url", "is_redirect", "is_timeout"])
 
+
+ExceptionStr = namedtuple("ExceptionStr", ["type_name", "message"])
+
+
+Link = namedtuple("Link", ["type", "url_split", "original_url", "source_str"])
+
+
+PageCrawl = namedtuple("PageCrawl", ["original_url_split", "final_url_split",
+        "status", "is_timeout", "is_redirect", "links", "exception"])
 
 
 
@@ -91,7 +100,7 @@ class Config(object):
                         .format(element_type))
 
         return WorkerConfig(options.username, options.password, types,
-                options.timeout)
+                options.timeout, options.parser)
 
     def _build_accepted_hosts(self, options, start_urls):
         hosts = set()
