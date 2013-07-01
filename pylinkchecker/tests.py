@@ -66,6 +66,7 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 
 def start_http_server():
+    """Starts a simple http server for the test files"""
     # For the http handler
     os.chdir(TEST_FILES_DIR)
     handler = SimpleHTTPServer.SimpleHTTPRequestHandler
@@ -80,7 +81,6 @@ def start_http_server():
 
 
 class CrawlerTest(unittest.TestCase):
-
 
     @classmethod
     def setUpClass(cls):

@@ -6,8 +6,8 @@ from __future__ import unicode_literals, absolute_import
 
 import sys
 
-from pylinkchecker.compat import range
-from pylinkchecker.models import Config, WorkerInit
+from pylinkchecker.compat import range, HTTPError
+from pylinkchecker.models import (Config, WorkerInit, Response, DEFAULT_TIMEOUT)
 
 
 WORK_DONE = '__WORK_DONE__'
@@ -116,6 +116,25 @@ def crawl_page(worker_init):
     """Safe redirection to the page crawler"""
     page_crawler = PageCrawler(worker_init)
     page_crawler.crawl_pages()
+
+
+def open_url(open_func, url, timeout=DEFAULT_TIMEOUT):
+    """Opens a URL and returns a Response object"""
+    try:
+        output_value = open_func(url)
+        final_url = output_value.geturl()
+        code = output_value.getcode()
+        response = Response(content=output_value, status=code, exception=None,
+            original_url=url, final_url=final_url, is_redirect=final_url != url)
+    except HTTPError as http_error:
+        code = http_error.code
+        response = Response(content=None, status=code, exception=http_error,
+            original_url=url, final_url=None, is_redirect=False)
+    except Exception as exc:
+        response = Response(content=None, status=None, exception=exc,
+            original_url=url, final_url=None, is_redirect=False)
+
+    return response
 
 
 def execute_from_command_line():

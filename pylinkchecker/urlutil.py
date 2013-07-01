@@ -4,7 +4,6 @@ Contains the crawling logic.
 """
 from __future__ import unicode_literals, absolute_import
 
-#from pylinkchecker.compat.urlparse import urlsplit
 from pylinkchecker.compat import urlparse
 
 

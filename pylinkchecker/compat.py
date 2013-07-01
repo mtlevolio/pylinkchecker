@@ -11,8 +11,18 @@ if sys.version_info[0] < 3:
     import urlparse
     import SimpleHTTPServer
     import SocketServer
+    from urllib2 import HTTPError
 else:
     range = range
     import urllib.parse as urlparse
     import http.server as SimpleHTTPServer
     import socketserver as SocketServer
+    from urllib.error import HTTPError
+
+
+def get_url_open():
+    if sys.version_info[0] < 3:
+        from urllib2 import urlopen
+    else:
+        from urllib.request import urlopen
+    return urlopen
