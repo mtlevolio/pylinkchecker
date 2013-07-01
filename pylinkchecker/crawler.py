@@ -118,18 +118,35 @@ def crawl_page(worker_init):
     page_crawler.crawl_pages()
 
 
-def open_url(open_func, url, timeout=DEFAULT_TIMEOUT):
-    """Opens a URL and returns a Response object"""
+def open_url(open_func, url, timeout, timeout_exception):
+    """Opens a URL and returns a Response object.
+
+    All parameters are required to be able to use a patched version of the
+    Python standard library (i.e., patched by gevent)
+
+    :param open_func: url open function, typicaly urllib2.urlopen
+    :param url: the url to open
+    :param timeout: number of seconds to wait before timing out
+    :param timeout_exception: the exception thrown by open_func if a timeout
+            occurs
+    :rtype: A Response object
+    """
     try:
         output_value = open_func(url)
         final_url = output_value.geturl()
         code = output_value.getcode()
         response = Response(content=output_value, status=code, exception=None,
-            original_url=url, final_url=final_url, is_redirect=final_url != url)
+            original_url=url, final_url=final_url, is_redirect=final_url != url,
+            is_timeout=False)
     except HTTPError as http_error:
         code = http_error.code
         response = Response(content=None, status=code, exception=http_error,
-            original_url=url, final_url=None, is_redirect=False)
+            original_url=url, final_url=None, is_redirect=False,
+            is_timeout=False)
+    except timeout_exception as t_exception:
+        response = Response(content=None, status=None, exception=t_exception,
+            original_url=url, final_url=None, is_redirect=False,
+            is_timeout=True)
     except Exception as exc:
         response = Response(content=None, status=None, exception=exc,
             original_url=url, final_url=None, is_redirect=False)

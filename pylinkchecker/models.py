@@ -50,7 +50,7 @@ WorkerConfig = namedtuple("WorkerConfig", ["username", "password", "types",
 
 
 Response = namedtuple("Response", ["content", "status", "exception",
-        "original_url", "final_url", "is_redirect"])
+        "original_url", "final_url", "is_redirect", "is_timeout"])
 
 
 

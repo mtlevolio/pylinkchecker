@@ -6,15 +6,18 @@ from __future__ import unicode_literals, absolute_import
 
 import os
 import sys
+import time
 import threading
 import unittest
 
-from pylinkchecker.compat import SocketServer, SimpleHTTPServer
+from pylinkchecker.crawler import open_url
+from pylinkchecker.compat import SocketServer, SimpleHTTPServer, get_url_open
 from pylinkchecker.models import Config
 from pylinkchecker.urlutil import get_clean_url_split
 
 
-TEST_FILES_DIR = os.path.dirname(os.path.realpath(__file__))
+TEST_FILES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        'testfiles')
 
 
 class ConfigTest(unittest.TestCase):
@@ -85,6 +88,8 @@ class CrawlerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         (cls.ip, cls.port, cls.httpd, cls.httpd_thread) = start_http_server()
+        # FIXME replace by thread synchronization on start
+        time.sleep(0.2)
 
     @classmethod
     def tearDownClass(cls):
@@ -92,11 +97,32 @@ class CrawlerTest(unittest.TestCase):
 
     def setUp(self):
         # We must do this because Python 2.6 does not have setUpClass
+        # This will only be executed if setUpClass is ignored.
         # It will not be shutdown properly though, but this does not prevent
         # the unit test to run properly
-        if not hasattr(self, 'test_port'):
+        if not hasattr(self, 'port'):
             (self.ip, self.port, self.httpd, self.httpd_thread) =\
                     start_http_server()
+            # FIXME replace by thread synchronization on start
+            time.sleep(0.2)
+
+    def get_url(self, test_url):
+        return "http://{0}:{1}{2}".format(self.ip, self.port, test_url)
 
     def test_404(self):
-        pass
+        urlopen = get_url_open()
+        import socket
+        url = self.get_url("/does_not_exist.html")
+        response = open_url(urlopen, url, 10, socket.timeout)
+
+        self.assertEqual(404, response.status)
+        self.assertTrue(response.exception is not None)
+
+    def test_200(self):
+        urlopen = get_url_open()
+        import socket
+        url = self.get_url("/index.html")
+        response = open_url(urlopen, url, 10, socket.timeout)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response.exception is None)
