@@ -11,8 +11,9 @@ from bs4 import BeautifulSoup
 import pylinkchecker.compat as compat
 from pylinkchecker.compat import range, HTTPError, get_url_open, unicode
 from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
-        ExceptionStr, Link, DATA_SRC)
-from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
+        ExceptionStr, Link, TYPE_ATTRIBUTES)
+from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
+        is_link)
 
 
 WORK_DONE = '__WORK_DONE__'
@@ -147,6 +148,7 @@ class PageCrawler(object):
                             is_timeout=True, is_redirect=False, links=None,
                             exception=None)
                 else:
+                    # Something bad happened when opening the url
                     exception = ExceptionStr(unicode(type(response.exception)),
                         unicode(response.exception))
                     page_crawl = PageCrawl(
@@ -188,22 +190,14 @@ class PageCrawler(object):
                 base_url_split = get_clean_url_split(base['href'])
 
         links = []
-        if 'a' in self.worker_config.types:
-            a_links = html_soup.find_all('a')
-            links.extend(self._get_links(a_links, 'href', base_url_split,
-                    original_url_split))
-        if 'img' in self.worker_config.types:
-            img_links = html_soup.find_all('img')
-            links.extend(self._get_links(img_links, 'src', base_url_split,
-                    original_url_split))
-        if 'link' in self.worker_config.types:
-            link_links = html_soup.find_all('link')
-            links.extend(self._get_links(link_links, 'href', base_url_split,
-                    original_url_split))
-        if 'script' in self.worker_config.types:
-            script_links = html_soup.find_all('script')
-            links.extend(self._get_links(script_links, 'src', base_url_split,
-                    original_url_split))
+        for element_type in self.worker_config.types:
+            if element_type not in TYPE_ATTRIBUTES:
+                raise Exception("Unknown element type: {0}".
+                        format(element_type))
+            attribute = TYPE_ATTRIBUTES[element_type]
+            element_links = html_soup.find_all(element_type)
+            links.extend(self._get_links(element_links, attribute,
+                    base_url_split, original_url_split))
         return links
 
     def _get_links(self, elements, attribute, base_url_split,
@@ -212,8 +206,7 @@ class PageCrawler(object):
         for element in elements:
             if attribute in element.attrs:
                 url = element[attribute]
-                if url.startswith(DATA_SRC) or url.startswith('#'):
-                    # Local or Base 64
+                if not is_link(url):
                     continue
                 abs_url_split = get_absolute_url_split(url, base_url_split)
 

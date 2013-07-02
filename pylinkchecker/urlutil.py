@@ -12,6 +12,20 @@ SCHEME_HTTPS = "https"
 SUPPORTED_SCHEMES = (SCHEME_HTTP, SCHEME_HTTPS)
 
 
+NOT_LINK = [
+    'data',
+    '#',
+]
+
+
+def is_link(url):
+    """Return True if the url is not base 64 data or a local ref (#)"""
+    for prefix in NOT_LINK:
+        if url.startswith(prefix):
+            return False
+    return True
+
+
 def get_clean_url_split(url):
     """Returns a clean SplitResult with a scheme and a valid path
 

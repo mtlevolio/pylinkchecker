@@ -13,6 +13,14 @@ from pylinkchecker.urlutil import get_clean_url_split
 DEFAULT_TYPES = ['a', 'img', 'script', 'link']
 
 
+TYPE_ATTRIBUTES = {
+    'a': 'href',
+    'img': 'src',
+    'script': 'src',
+    'link': 'href',
+}
+
+
 DEFAULT_TIMEOUT = 10
 
 
@@ -39,8 +47,6 @@ WHEN_ON_ERROR = "error"
 VERBOSE_QUIET = "0"
 VERBOSE_NORMAL = "1"
 VERBOSE_INFO = "2"
-
-DATA_SRC = "data"
 
 # Note: we use namedtuple to exchange data with workers because they are
 # immutable and easy to pickle (as opposed to a class).
