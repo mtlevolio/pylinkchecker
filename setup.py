@@ -29,6 +29,7 @@ resources like images.
     license='BSD License',
     url='https://github.com/auto123/pylinkchecker',
     packages=['pylinkchecker', 'pylinkchecker.bs4', 'pylinkchecker.bs4.builder'],
+    scripts = ['pylinkchecker/bin/pylinkcheck.py'],
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',
