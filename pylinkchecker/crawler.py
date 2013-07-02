@@ -8,9 +8,11 @@ import sys
 
 from bs4 import BeautifulSoup
 
-from pylinkchecker.compat import range, HTTPError, get_url_open
+import pylinkchecker.compat as compat
+from pylinkchecker.compat import range, HTTPError, get_url_open, unicode
 from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
-        ExceptionStr)
+        ExceptionStr, Link, DATA_SRC)
+from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
 
 
 WORK_DONE = '__WORK_DONE__'
@@ -63,8 +65,7 @@ class ThreadSiteCrawler(SiteCrawler):
     """Site Crawler with thread workers."""
 
     def build_queue(self, config):
-        from Queue import Queue
-        return Queue()
+        return compat.Queue.Queue()
 
     def get_workers(self, config, worker_init):
         from threading import Thread
@@ -110,15 +111,23 @@ class PageCrawler(object):
         import socket
         self.timeout_exception = socket.timeout
 
-    def crawl_pages(self):
-        url_split_to_crawl = self.input_queue.get()
+    def crawl_page_forever(self):
+        """Starts page crawling loop for this worker."""
 
-        if url_split_to_crawl == WORK_DONE:
-            # No more work! Pfew!
-            return
+        while True:
+            url_split_to_crawl = self.input_queue.get()
+
+            if url_split_to_crawl == WORK_DONE:
+                # No more work! Pfew!
+                return
+            else:
+                page_crawl = self._crawl_page(url_split_to_crawl)
+                self.output_queue.put(page_crawl)
+
+    def _crawl_page(self, url_split_to_crawl):
+        page_crawl = None
 
         try:
-
             response = open_url(self.urlopen, url_split_to_crawl.geturl(),
                     self.worker_config.timeout, self.timeout_exception)
 
@@ -150,30 +159,76 @@ class PageCrawler(object):
 
                 html_soup = BeautifulSoup(response.content,
                         self.worker_config.parser)
-                links = self.get_links(html_soup)
+                links = self.get_links(html_soup, final_url_split)
+
+                page_crawl = PageCrawl(original_url_split=url_split_to_crawl,
+                    final_url_split=final_url_split, status=response.status,
+                    is_timeout=False, is_redirect=response.is_redirect,
+                    links=links, exception=None)
         except Exception as exc:
             exception = ExceptionStr(unicode(type(exc)), unicode(exc))
             page_crawl = PageCrawl(original_url_split=url_split_to_crawl,
                     final_url_split=None, status=None,
                     is_timeout=False, is_redirect=False, links=None,
                     exception=exception)
+            from traceback import print_exc
+            print_exc()
 
+        return page_crawl
 
+    def get_links(self, html_soup, original_url_split):
 
-        # get page
-        # if errors, return error
-        # else, parse page
-        # categorize all links (no duplication detection)
-        # return
+        # This is a weird html tag that defines the base URL of a page.
+        base_url_split = original_url_split
 
+        bases = html_soup.find_all('base')
+        if bases:
+            base = bases[0]
+            if 'href' in base.attrs:
+                base_url_split = get_clean_url_split(base['href'])
 
-        self.output_queue.put(page_crawl)
+        links = []
+        if 'a' in self.worker_config.types:
+            a_links = html_soup.find_all('a')
+            links.extend(self._get_links(a_links, 'href', base_url_split,
+                    original_url_split))
+        if 'img' in self.worker_config.types:
+            img_links = html_soup.find_all('img')
+            links.extend(self._get_links(img_links, 'src', base_url_split,
+                    original_url_split))
+        if 'link' in self.worker_config.types:
+            link_links = html_soup.find_all('link')
+            links.extend(self._get_links(link_links, 'href', base_url_split,
+                    original_url_split))
+        if 'script' in self.worker_config.types:
+            script_links = html_soup.find_all('script')
+            links.extend(self._get_links(script_links, 'src', base_url_split,
+                    original_url_split))
+        return links
+
+    def _get_links(self, elements, attribute, base_url_split,
+        original_url_split):
+        links = []
+        for element in elements:
+            if attribute in element.attrs:
+                url = element[attribute]
+                if url.startswith(DATA_SRC) or url.startswith('#'):
+                    # Local or Base 64
+                    continue
+                abs_url_split = get_absolute_url_split(url, base_url_split)
+
+                link = Link(type=unicode(element.name), url_split=abs_url_split,
+                    original_url_split=original_url_split,
+                    source_str=unicode(element))
+                links.append(link)
+
+        return links
 
 
 def crawl_page(worker_init):
     """Safe redirection to the page crawler"""
     page_crawler = PageCrawler(worker_init)
-    page_crawler.crawl_pages()
+    page_crawler.crawl_page_forever()
 
 
 def open_url(open_func, url, timeout, timeout_exception):

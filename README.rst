@@ -30,6 +30,9 @@ gevent
   instead of processes or threads. gevent could potentially speed up the
   crawling speed on web sites with many small pages.
 
+cchardet
+  this library speeds up the detection of document encoding.
+
 
 Installation
 ------------

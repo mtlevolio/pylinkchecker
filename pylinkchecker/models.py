@@ -40,6 +40,10 @@ VERBOSE_QUIET = "0"
 VERBOSE_NORMAL = "1"
 VERBOSE_INFO = "2"
 
+DATA_SRC = "data"
+
+# Note: we use namedtuple to exchange data with workers because they are
+# immutable and easy to pickle (as opposed to a class).
 
 WorkerInit = namedtuple("WorkerInit", ["worker_config", "input_queue",
         "output_queue"])
@@ -56,7 +60,7 @@ Response = namedtuple("Response", ["content", "status", "exception",
 ExceptionStr = namedtuple("ExceptionStr", ["type_name", "message"])
 
 
-Link = namedtuple("Link", ["type", "url_split", "original_url", "source_str"])
+Link = namedtuple("Link", ["type", "url_split", "original_url_split", "source_str"])
 
 
 PageCrawl = namedtuple("PageCrawl", ["original_url_split", "final_url_split",

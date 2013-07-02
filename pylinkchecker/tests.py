@@ -10,10 +10,12 @@ import time
 import threading
 import unittest
 
-from pylinkchecker.crawler import open_url
+import pylinkchecker.compat as compat
 from pylinkchecker.compat import SocketServer, SimpleHTTPServer, get_url_open
-from pylinkchecker.models import Config
-from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url
+from pylinkchecker.crawler import open_url, PageCrawler
+from pylinkchecker.models import (Config, WorkerInit, WorkerConfig,
+        PARSER_STDLIB)
+from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
 
 
 TEST_FILES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -67,14 +69,15 @@ class URLUtilTest(unittest.TestCase):
         base_url_split = get_clean_url_split(
                 "https://www.example.com/hello/index.html")
         self.assertEqual("https://www.example2.com/test.js",
-            get_absolute_url("//www.example2.com/test.js", base_url_split).
-            geturl())
+            get_absolute_url_split("//www.example2.com/test.js",
+                    base_url_split).geturl())
         self.assertEqual("https://www.example.com/hello2/test.html",
-            get_absolute_url("/hello2/test.html", base_url_split).geturl())
+            get_absolute_url_split("/hello2/test.html",
+                    base_url_split).geturl())
         self.assertEqual("https://www.example.com/hello/test.html",
-            get_absolute_url("test.html", base_url_split).geturl())
+            get_absolute_url_split("test.html", base_url_split).geturl())
         self.assertEqual("https://www.example.com/test.html",
-            get_absolute_url("../test.html", base_url_split).geturl())
+            get_absolute_url_split("../test.html", base_url_split).geturl())
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     pass
@@ -147,3 +150,33 @@ class CrawlerTest(unittest.TestCase):
 
         self.assertEqual(200, response.status)
         self.assertTrue(response.is_redirect)
+
+    def test_crawl_page(self):
+        url = self.get_url("/index.html")
+        url_split = get_clean_url_split(url)
+        input_queue = compat.Queue.Queue()
+        output_queue = compat.Queue.Queue()
+
+        worker_config = WorkerConfig(username=None, password=None, types=['a',
+                'img', 'link', 'script'], timeout=5, parser=PARSER_STDLIB)
+
+        worker_init = WorkerInit(worker_config=worker_config,
+                input_queue=input_queue, output_queue=output_queue)
+
+        page_crawler = PageCrawler(worker_init)
+
+        page_crawl = page_crawler._crawl_page(url_split)
+
+        self.assertFalse(page_crawl.is_timeout)
+        self.assertFalse(page_crawl.is_redirect)
+        self.assertTrue(page_crawl.exception is None)
+
+        a_links = [link for link in page_crawl.links if link.type == 'a']
+        img_links = [link for link in page_crawl.links if link.type == 'img']
+        script_links = [link for link in page_crawl.links if link.type == 'script']
+        link_links = [link for link in page_crawl.links if link.type == 'link']
+
+        self.assertEqual(5, len(a_links))
+        self.assertEqual(1, len(img_links))
+        self.assertEqual(1, len(script_links))
+        self.assertEqual(1, len(link_links))

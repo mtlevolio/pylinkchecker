@@ -22,7 +22,7 @@ resources like images.
     author_email='bdagenais@auto123.com',
     license='BSD License',
     url='https://github.com/auto123/pylinkchecker',
-    packages=['pylinkchecker', 'pylinkchecker.bs4', 'pylinkchecker.builder'],
+    packages=['pylinkchecker',],
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',

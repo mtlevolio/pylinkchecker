@@ -32,7 +32,7 @@ def get_clean_url_split(url):
     return split_result
 
 
-def get_absolute_url(url, base_url_split):
+def get_absolute_url_split(url, base_url_split):
     """Returns a SplitResult containing the new URL.
 
     :param url: The url (relative or absolute).
