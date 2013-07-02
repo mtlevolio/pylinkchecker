@@ -9,9 +9,10 @@ import sys
 from bs4 import BeautifulSoup
 
 import pylinkchecker.compat as compat
-from pylinkchecker.compat import range, HTTPError, get_url_open, unicode
+from pylinkchecker.compat import (range, HTTPError, get_url_open, unicode,
+        get_content_type)
 from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
-        ExceptionStr, Link, TYPE_ATTRIBUTES)
+        ExceptionStr, Link, TYPE_ATTRIBUTES, HTML_MIME_TYPE)
 from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
         is_link)
 
@@ -139,14 +140,14 @@ class PageCrawler(object):
                             original_url_split=url_split_to_crawl,
                             final_url_split=None, status=response.status,
                             is_timeout=False, is_redirect=False, links=None,
-                            exception=None)
+                            exception=None, is_html=False)
                 elif response.is_timeout:
                     # This is a timeout. No need to wrap the exception
                     page_crawl = PageCrawl(
                             original_url_split=url_split_to_crawl,
                             final_url_split=None, status=None,
                             is_timeout=True, is_redirect=False, links=None,
-                            exception=None)
+                            exception=None, is_html=False)
                 else:
                     # Something bad happened when opening the url
                     exception = ExceptionStr(unicode(type(response.exception)),
@@ -155,24 +156,31 @@ class PageCrawler(object):
                             original_url_split=url_split_to_crawl,
                             final_url_split=None, status=None,
                             is_timeout=False, is_redirect=False, links=None,
-                            exception=exception)
+                            exception=exception, is_html=False)
             else:
                 final_url_split = get_clean_url_split(response.final_url)
 
-                html_soup = BeautifulSoup(response.content,
-                        self.worker_config.parser)
-                links = self.get_links(html_soup, final_url_split)
+                mime_type = get_content_type(response.content.info())
+
+                if mime_type == HTML_MIME_TYPE:
+                    html_soup = BeautifulSoup(response.content,
+                            self.worker_config.parser)
+                    links = self.get_links(html_soup, final_url_split)
+                    is_html = True
+                else:
+                    links = []
+                    is_html = False
 
                 page_crawl = PageCrawl(original_url_split=url_split_to_crawl,
                     final_url_split=final_url_split, status=response.status,
                     is_timeout=False, is_redirect=response.is_redirect,
-                    links=links, exception=None)
+                    links=links, exception=None, is_html=is_html)
         except Exception as exc:
             exception = ExceptionStr(unicode(type(exc)), unicode(exc))
             page_crawl = PageCrawl(original_url_split=url_split_to_crawl,
                     final_url_split=None, status=None,
                     is_timeout=False, is_redirect=False, links=None,
-                    exception=exception)
+                    exception=exception, is_html=False)
             from traceback import print_exc
             print_exc()
 

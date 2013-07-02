@@ -48,6 +48,8 @@ VERBOSE_QUIET = "0"
 VERBOSE_NORMAL = "1"
 VERBOSE_INFO = "2"
 
+HTML_MIME_TYPE = "text/html"
+
 # Note: we use namedtuple to exchange data with workers because they are
 # immutable and easy to pickle (as opposed to a class).
 
@@ -66,11 +68,12 @@ Response = namedtuple("Response", ["content", "status", "exception",
 ExceptionStr = namedtuple("ExceptionStr", ["type_name", "message"])
 
 
-Link = namedtuple("Link", ["type", "url_split", "original_url_split", "source_str"])
+Link = namedtuple("Link", ["type", "url_split", "original_url_split",
+        "source_str"])
 
 
 PageCrawl = namedtuple("PageCrawl", ["original_url_split", "final_url_split",
-        "status", "is_timeout", "is_redirect", "links", "exception"])
+        "status", "is_timeout", "is_redirect", "links", "exception", "is_html"])
 
 
 

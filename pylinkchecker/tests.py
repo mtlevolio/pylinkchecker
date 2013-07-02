@@ -12,7 +12,7 @@ import unittest
 
 import pylinkchecker.compat as compat
 from pylinkchecker.compat import SocketServer, SimpleHTTPServer, get_url_open
-from pylinkchecker.crawler import open_url, PageCrawler
+from pylinkchecker.crawler import open_url, PageCrawler, WORK_DONE
 from pylinkchecker.models import (Config, WorkerInit, WorkerConfig,
         PARSER_STDLIB)
 from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
@@ -124,6 +124,23 @@ class CrawlerTest(unittest.TestCase):
     def get_url(self, test_url):
         return "http://{0}:{1}{2}".format(self.ip, self.port, test_url)
 
+    def get_page_crawler(self, url):
+        url = self.get_url(url)
+        url_split = get_clean_url_split(url)
+        input_queue = compat.Queue.Queue()
+        output_queue = compat.Queue.Queue()
+
+        worker_config = WorkerConfig(username=None, password=None, types=['a',
+                'img', 'link', 'script'], timeout=5, parser=PARSER_STDLIB)
+
+        worker_init = WorkerInit(worker_config=worker_config,
+                input_queue=input_queue, output_queue=output_queue)
+
+        page_crawler = PageCrawler(worker_init)
+
+        return page_crawler, url_split
+
+
     def test_404(self):
         urlopen = get_url_open()
         import socket
@@ -152,21 +169,11 @@ class CrawlerTest(unittest.TestCase):
         self.assertTrue(response.is_redirect)
 
     def test_crawl_page(self):
-        url = self.get_url("/index.html")
-        url_split = get_clean_url_split(url)
-        input_queue = compat.Queue.Queue()
-        output_queue = compat.Queue.Queue()
-
-        worker_config = WorkerConfig(username=None, password=None, types=['a',
-                'img', 'link', 'script'], timeout=5, parser=PARSER_STDLIB)
-
-        worker_init = WorkerInit(worker_config=worker_config,
-                input_queue=input_queue, output_queue=output_queue)
-
-        page_crawler = PageCrawler(worker_init)
-
+        page_crawler, url_split = self.get_page_crawler("/index.html")
         page_crawl = page_crawler._crawl_page(url_split)
 
+        self.assertEqual(200, page_crawl.status)
+        self.assertTrue(page_crawl.is_html)
         self.assertFalse(page_crawl.is_timeout)
         self.assertFalse(page_crawl.is_redirect)
         self.assertTrue(page_crawl.exception is None)
@@ -180,3 +187,46 @@ class CrawlerTest(unittest.TestCase):
         self.assertEqual(1, len(img_links))
         self.assertEqual(1, len(script_links))
         self.assertEqual(1, len(link_links))
+
+    def test_crawl_resource(self):
+        page_crawler, url_split = self.get_page_crawler("/sub/small_image.gif")
+        page_crawl = page_crawler._crawl_page(url_split)
+
+        self.assertEqual(200, page_crawl.status)
+        self.assertFalse(page_crawl.links)
+        self.assertFalse(page_crawl.is_html)
+        self.assertFalse(page_crawl.is_timeout)
+        self.assertFalse(page_crawl.is_redirect)
+        self.assertTrue(page_crawl.exception is None)
+
+    def test_base_url(self):
+        page_crawler, url_split = self.get_page_crawler("/alone.html")
+        page_crawl = page_crawler._crawl_page(url_split)
+
+        self.assertEqual(1, len(page_crawl.links))
+        self.assertEqual('http://www.example.com/test.html',
+                page_crawl.links[0].url_split.geturl())
+
+    def test_crawl_404(self):
+        page_crawler, url_split = self.get_page_crawler("/sub/small_image_bad.gif")
+        page_crawl = page_crawler._crawl_page(url_split)
+
+        self.assertEqual(404, page_crawl.status)
+        self.assertFalse(page_crawl.links)
+        self.assertFalse(page_crawl.is_html)
+        self.assertFalse(page_crawl.is_timeout)
+        self.assertFalse(page_crawl.is_redirect)
+
+    def test_page_crawler(self):
+        page_crawler, url_split = self.get_page_crawler("/index.html")
+        input_queue = page_crawler.input_queue
+        output_queue = page_crawler.output_queue
+
+        input_queue.put(url_split)
+        input_queue.put(WORK_DONE)
+        page_crawler.crawl_page_forever()
+
+        page_crawl = output_queue.get()
+
+        self.assertEqual(200, page_crawl.status)
+        self.assertTrue(len(page_crawl.links) > 0)
