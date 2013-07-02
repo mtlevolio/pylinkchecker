@@ -28,27 +28,37 @@ MODE_THREAD = "thread"
 MODE_PROCESS = "process"
 MODE_GREEN = "green"
 
+
 DEFAULT_WORKERS = {
     MODE_THREAD: 1,
     MODE_PROCESS: 1,
     MODE_GREEN: 1000,
 }
 
+
 PARSER_STDLIB = "html.parser"
 PARSER_LXML = "lxml"
+
 
 FORMAT_PLAIN = "plain"
 FORMAT_HTML = "html"
 FORMAT_JSON = "json"
 
+
 WHEN_ALWAYS = "always"
 WHEN_ON_ERROR = "error"
+
 
 VERBOSE_QUIET = "0"
 VERBOSE_NORMAL = "1"
 VERBOSE_INFO = "2"
 
+
 HTML_MIME_TYPE = "text/html"
+
+
+PAGE_QUEUED = '__PAGE_QUEUED__'
+PAGE_CRAWLED = '__PAGE_CRAWLED__'
 
 # Note: we use namedtuple to exchange data with workers because they are
 # immutable and easy to pickle (as opposed to a class).
@@ -201,7 +211,43 @@ class Config(object):
         return parser
 
 
-class Site(object):
+class SitePage(object):
+    """Contains the crawling result for a page.
 
-    def __init__(self):
-        pass
+    This is a class because we need to keep track of the various sources
+    linking to this page and it must be modified as the crawl progresses.
+    """
+
+    def __init__(self, url_split, url_split_source=None, type='a', status=200,
+            is_timeout=False, exception=None, is_html=True, is_local=True):
+        self.url_split = url_split
+
+        self.original_source = None
+        self.sources = set()
+        if url_split_source:
+            self.original_source = url_split_source
+            self.sources.add(url_split_source)
+
+        self.type = type
+        self.status = status
+        self.is_timeout = is_timeout
+        self.exception = exception
+        self.is_html = is_html
+        self.is_ok = status and status < 400
+        self.is_local = is_local
+
+    def add_source(self, url_source):
+        self.sources.add(url_source)
+
+
+class Site(object):
+    """Contains all the visited and visiting pages of a site."""
+
+    def __init__(self, start_urls):
+        self.start_urls = start_urls
+
+        self.pages = {}
+        """Map of url:SitePage"""
+
+        self.page_status = {}
+        """Map of url:PageStatus (PAGE_QUEUED, PAGE_CRAWLED)"""
