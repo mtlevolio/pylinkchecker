@@ -5,9 +5,15 @@ try:
 except ImportError:
     from distutils.core import setup
 
+import sys
+
 version = __import__('pylinkchecker').__version__
 
-requires = ['beautifulsoup4>=4.2.0']
+if sys.version_info[0] >= 3:
+    requires = ['beautifulsoup4>=4.2.0']
+else:
+    requires = []
+
 setup(
     name='pylinkchecker',
     version=version,
@@ -22,7 +28,7 @@ resources like images.
     author_email='bdagenais@auto123.com',
     license='BSD License',
     url='https://github.com/auto123/pylinkchecker',
-    packages=['pylinkchecker',],
+    packages=['pylinkchecker', 'pylinkchecker.bs4', 'pylinkchecker.bs4.builder'],
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',

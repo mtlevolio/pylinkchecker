@@ -26,7 +26,6 @@ else:
     get_content_type = lambda m: m.get_content_type()
 
 
-
 def get_url_open():
     # Not automatically imported to allow monkey patching.
     if sys.version_info[0] < 3:

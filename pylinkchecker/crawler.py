@@ -6,7 +6,7 @@ from __future__ import unicode_literals, absolute_import
 
 import sys
 
-from bs4 import BeautifulSoup
+from pylinkchecker.bs4 import BeautifulSoup
 
 import pylinkchecker.compat as compat
 from pylinkchecker.compat import (range, HTTPError, get_url_open, unicode,
