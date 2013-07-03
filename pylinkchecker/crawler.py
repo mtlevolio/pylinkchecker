@@ -12,7 +12,7 @@ import pylinkchecker.compat as compat
 from pylinkchecker.compat import (range, HTTPError, get_url_open, unicode,
         get_content_type)
 from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
-        ExceptionStr, Link, TYPE_ATTRIBUTES, HTML_MIME_TYPE)
+        ExceptionStr, Link, Site, TYPE_ATTRIBUTES, HTML_MIME_TYPE)
 from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
         is_link)
 
@@ -25,42 +25,59 @@ class SiteCrawler(object):
 
     def __init__(self, config):
         self.config = config
-        self.start_urls = config.start_urls
+        self.start_url_splits = []
+        for start_url in config.start_urls:
+            self.start_url_splits.append(get_clean_url_split(start_url))
         self.workers = []
         self.input_queue = self.build_queue(config)
         self.output_queue = self.build_queue(config)
         self.worker_init = WorkerInit(self.config.worker_config,
             self.input_queue, self.output_queue)
+        self.site = Site(self.start_url_splits)
 
     def crawl(self):
         self.workers = self.get_workers(self.config, self.worker_init)
-        queue_size = len(self.start_urls)
-        for start_url in self.start_urls:
-            self.input_queue.put(start_url, False)
+        queue_size = len(self.start_url_splits)
+        for start_url_split in self.start_url_splits:
+            self.input_queue.put(start_url_split, False)
 
         self.start_workers(self.workers, self.input_queue, self.output_queue)
 
-        urls_to_process = self.output_queue.get()
-        queue_size -= 1
-        new_urls = self.process_urls(urls_to_process)
+        while True:
+            page_crawl = self.output_queue.get()
+            queue_size -= 1
+            new_url_splits = self.process_page_crawl(page_crawl)
 
-        if not new_urls and queue_size <= 0:
-            self.stop_workers(self.workers, self.input_queue, self.output_queue)
+            if not new_url_splits and queue_size <= 0:
+                self.stop_workers(self.workers, self.input_queue,
+                        self.output_queue)
+                return self.site
+
+            for url_split in new_url_splits:
+                queue_size += 1
+                self.input_queue.put(url_split, False)
+
 
     def build_queue(self, config):
+        """Returns an object implementing the Queue interface."""
         raise NotImplementedError()
 
     def get_workers(self, config, worker_init):
+        """Returns a sequence of workers of the desired type."""
         raise NotImplementedError()
 
     def start_workers(self, workers, input_queue, output_queue):
+        """Start the workers."""
         raise NotImplementedError()
 
     def stop_workers(self, workers, input_queue, output_queue):
-        raise NotImplementedError
+        """Stops the workers."""
+        for worker in workers:
+            input_queue.put(WORK_DONE)
 
-    def process_urls(self, urls_to_process):
-        return []
+    def process_page_crawl(self, page_crawl):
+        """Returns a sequence of SplitResult to crawl."""
+        return self.site.add_crawled_page(page_crawl)
 
 
 class ThreadSiteCrawler(SiteCrawler):
@@ -81,13 +98,6 @@ class ThreadSiteCrawler(SiteCrawler):
     def start_workers(self, workers, input_queue, output_queue):
         for worker in workers:
             worker.start()
-
-    def stop_workers(self, workers, input_queue, output_queue):
-        for worker in workers:
-            input_queue.put(WORK_DONE)
-
-    def process_urls(self, urls_to_process):
-        return []
 
 
 class ProcessSiteCrawler(SiteCrawler):
@@ -181,12 +191,17 @@ class PageCrawler(object):
                     final_url_split=None, status=None,
                     is_timeout=False, is_redirect=False, links=None,
                     exception=exception, is_html=False)
-            from traceback import print_exc
-            print_exc()
 
         return page_crawl
 
     def get_links(self, html_soup, original_url_split):
+        """Get Link for desired types (e.g., a, link, img, script)
+
+        :param html_soup: The page parsed by BeautifulSoup
+        :param original_url_split: The URL of the page used to resolve relative
+                links.
+        :rtype: A sequence of Link objects
+        """
 
         # This is a weird html tag that defines the base URL of a page.
         base_url_split = original_url_split

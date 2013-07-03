@@ -243,11 +243,20 @@ class SitePage(object):
 class Site(object):
     """Contains all the visited and visiting pages of a site."""
 
-    def __init__(self, start_urls):
-        self.start_urls = start_urls
+    def __init__(self, start_url_splits, config):
+        self.start_url_splits = start_url_splits
 
         self.pages = {}
         """Map of url:SitePage"""
 
         self.page_status = {}
         """Map of url:PageStatus (PAGE_QUEUED, PAGE_CRAWLED)"""
+
+        self.config = config
+
+        for start_url_split in self.start_url_splits:
+            self.page_status[start_url_split] = PAGE_QUEUED
+
+    def add_crawled_page(self, page_crawl):
+        """Adds a crawled page. Returns a list of url split to crawl"""
+        pass
