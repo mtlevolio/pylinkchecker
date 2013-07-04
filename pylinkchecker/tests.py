@@ -13,7 +13,7 @@ import unittest
 import pylinkchecker.compat as compat
 from pylinkchecker.compat import SocketServer, SimpleHTTPServer, get_url_open
 from pylinkchecker.crawler import open_url, PageCrawler, WORK_DONE
-from pylinkchecker.models import (Config, WorkerInit, WorkerConfig,
+from pylinkchecker.models import (Config, WorkerInit, WorkerConfig, WorkerInput,
         PARSER_STDLIB)
 from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
 
@@ -170,7 +170,7 @@ class CrawlerTest(unittest.TestCase):
 
     def test_crawl_page(self):
         page_crawler, url_split = self.get_page_crawler("/index.html")
-        page_crawl = page_crawler._crawl_page(url_split)
+        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True))
 
         self.assertEqual(200, page_crawl.status)
         self.assertTrue(page_crawl.is_html)
@@ -190,7 +190,7 @@ class CrawlerTest(unittest.TestCase):
 
     def test_crawl_resource(self):
         page_crawler, url_split = self.get_page_crawler("/sub/small_image.gif")
-        page_crawl = page_crawler._crawl_page(url_split)
+        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True))
 
         self.assertEqual(200, page_crawl.status)
         self.assertFalse(page_crawl.links)
@@ -201,7 +201,7 @@ class CrawlerTest(unittest.TestCase):
 
     def test_base_url(self):
         page_crawler, url_split = self.get_page_crawler("/alone.html")
-        page_crawl = page_crawler._crawl_page(url_split)
+        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True))
 
         self.assertEqual(1, len(page_crawl.links))
         self.assertEqual('http://www.example.com/test.html',
@@ -209,7 +209,7 @@ class CrawlerTest(unittest.TestCase):
 
     def test_crawl_404(self):
         page_crawler, url_split = self.get_page_crawler("/sub/small_image_bad.gif")
-        page_crawl = page_crawler._crawl_page(url_split)
+        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True))
 
         self.assertEqual(404, page_crawl.status)
         self.assertFalse(page_crawl.links)
@@ -222,7 +222,7 @@ class CrawlerTest(unittest.TestCase):
         input_queue = page_crawler.input_queue
         output_queue = page_crawler.output_queue
 
-        input_queue.put(url_split)
+        input_queue.put(WorkerInput(url_split, True))
         input_queue.put(WORK_DONE)
         page_crawler.crawl_page_forever()
 
@@ -230,3 +230,6 @@ class CrawlerTest(unittest.TestCase):
 
         self.assertEqual(200, page_crawl.status)
         self.assertTrue(len(page_crawl.links) > 0)
+
+    def test_site_crawler(self):
+        pass

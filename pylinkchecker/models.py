@@ -71,6 +71,9 @@ WorkerConfig = namedtuple("WorkerConfig", ["username", "password", "types",
         "timeout", "parser"])
 
 
+WorkerInput = namedtuple("WorkerInput", ["url_split", "should_crawl"])
+
+
 Response = namedtuple("Response", ["content", "status", "exception",
         "original_url", "final_url", "is_redirect", "is_timeout"])
 
@@ -86,6 +89,11 @@ PageCrawl = namedtuple("PageCrawl", ["original_url_split", "final_url_split",
         "status", "is_timeout", "is_redirect", "links", "exception", "is_html"])
 
 
+PageStatus = namedtuple("PageStatus", ["status", "sources"])
+
+
+PageSource = namedtuple("PageSource", ["origin", "origin_str"])
+
 
 class Config(object):
     """Contains all the configuration options."""
@@ -99,6 +107,26 @@ class Config(object):
         self.ignored_prefixes = []
         self.test_outside = False
         self.worker_size = 0
+
+    def is_local(self, url_split):
+        """Returns true if url split is in the accepted hosts"""
+        return url_split.netloc in self.accepted_hosts
+
+    def should_download(self, url_split):
+        """Returns True if the url does not start with an ignored prefix and if
+        it is local or outside links are allowed."""
+        local = self.is_local(url_split)
+
+        if not self.test_outside and not local:
+            return False
+
+        url = url_split.geturl()
+
+        for ignored_prefix in self.ignored_prefixes:
+            if url.startswith(ignored_prefix):
+                return False
+
+        return True
 
     def parse_config(self):
         """Build the options and args based on the command line options."""
@@ -218,15 +246,12 @@ class SitePage(object):
     linking to this page and it must be modified as the crawl progresses.
     """
 
-    def __init__(self, url_split, url_split_source=None, type='a', status=200,
-            is_timeout=False, exception=None, is_html=True, is_local=True):
+    def __init__(self, url_split, status=200, is_timeout=False, exception=None,
+            is_html=True, is_local=True):
         self.url_split = url_split
 
         self.original_source = None
-        self.sources = set()
-        if url_split_source:
-            self.original_source = url_split_source
-            self.sources.add(url_split_source)
+        self.sources = []
 
         self.type = type
         self.status = status
@@ -236,12 +261,16 @@ class SitePage(object):
         self.is_ok = status and status < 400
         self.is_local = is_local
 
-    def add_source(self, url_source):
-        self.sources.add(url_source)
+    def add_sources(self, page_sources):
+        self.sources.extend(page_sources)
 
 
 class Site(object):
-    """Contains all the visited and visiting pages of a site."""
+    """Contains all the visited and visiting pages of a site.
+
+    This class is NOT thread-safe and should only be accessed by one thread at
+    a time!
+    """
 
     def __init__(self, start_url_splits, config):
         self.start_url_splits = start_url_splits
@@ -249,14 +278,69 @@ class Site(object):
         self.pages = {}
         """Map of url:SitePage"""
 
-        self.page_status = {}
+        self.page_statuses = {}
         """Map of url:PageStatus (PAGE_QUEUED, PAGE_CRAWLED)"""
 
         self.config = config
 
         for start_url_split in self.start_url_splits:
-            self.page_status[start_url_split] = PAGE_QUEUED
+            self.page_statuses[start_url_split] = PageStatus(PAGE_QUEUED, [])
 
     def add_crawled_page(self, page_crawl):
         """Adds a crawled page. Returns a list of url split to crawl"""
-        pass
+        if not page_crawl.original_url_split in self.page_statuses:
+            # There is a problem! Should not happen.
+            # TODO LOG!
+            return []
+
+        status = self.page_statuses[page_crawl.original_url_split]
+
+        # Mark it as crawled
+        self.page_statuses[page_crawl.original_url_split] = PageStatus(
+                PAGE_CRAWLED, None)
+
+        if page_crawl.original_url_split in self.pages:
+            # There is a problem! Should not happen
+            # TODO LOG!
+            return []
+
+        final_url_split = page_crawl.final_url_split
+        if final_url_split in self.pages:
+            # This means that we already processed this final page (redirect).
+            # It's ok. Just add a source
+            site_page = self.pages[final_url_split]
+            site_page.add_sources(status.sources)
+        else:
+            is_local = self.config.is_local(final_url_split)
+            site_page = SitePage(final_url_split, page_crawl.status,
+                    page_crawl.is_timeout, page_crawl.exception,
+                    page_crawl.is_html, is_local)
+            site_page.add_sources(status.sources)
+
+        return self.process_links(page_crawl)
+
+    def process_links(self, page_crawl):
+        links_to_process = []
+        for link in page_crawl.links:
+            url_split = link.url_split
+            if not self.config.should_download(url_split):
+                continue
+
+            page_status = self.page_statuses.get(url_split, None)
+
+            page_source = PageSource(url_split, link.source_str)
+
+            if not page_status:
+                # We never encountered this url before
+                self.page_statuses[url_split] = PageStatus(PAGE_QUEUED,
+                        [page_source])
+                links_to_process.append(
+                        WorkerInput(url_split, self.config.is_local(url_split)))
+            elif page_status.status == PAGE_CRAWLED:
+                # Already crawled. Add source
+                self.pages[url_split].add_sources([page_source])
+            elif page_status.status == PAGE_QUEUED:
+                # Already queued for crawling. Add source.
+                page_status.sources.append(page_source)
+
+        return links_to_process

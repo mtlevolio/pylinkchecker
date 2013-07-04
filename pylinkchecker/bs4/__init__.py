@@ -39,8 +39,6 @@ except ImportError:
     if sys.version_info[0] >= 3:
         raise
 
-print("Using system version", use_system_version)
-
 if not use_system_version:
 
     __all__ = ['BeautifulSoup']

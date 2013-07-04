@@ -12,7 +12,7 @@ import pylinkchecker.compat as compat
 from pylinkchecker.compat import (range, HTTPError, get_url_open, unicode,
         get_content_type)
 from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
-        ExceptionStr, Link, Site, TYPE_ATTRIBUTES, HTML_MIME_TYPE)
+        ExceptionStr, Link, Site, WorkerInput, TYPE_ATTRIBUTES, HTML_MIME_TYPE)
 from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
         is_link)
 
@@ -33,29 +33,29 @@ class SiteCrawler(object):
         self.output_queue = self.build_queue(config)
         self.worker_init = WorkerInit(self.config.worker_config,
             self.input_queue, self.output_queue)
-        self.site = Site(self.start_url_splits)
+        self.site = Site(self.start_url_splits, config)
 
     def crawl(self):
         self.workers = self.get_workers(self.config, self.worker_init)
         queue_size = len(self.start_url_splits)
         for start_url_split in self.start_url_splits:
-            self.input_queue.put(start_url_split, False)
+            self.input_queue.put(WorkerInput(start_url_split, True), False)
 
         self.start_workers(self.workers, self.input_queue, self.output_queue)
 
         while True:
             page_crawl = self.output_queue.get()
             queue_size -= 1
-            new_url_splits = self.process_page_crawl(page_crawl)
+            new_worker_inputs = self.process_page_crawl(page_crawl)
 
-            if not new_url_splits and queue_size <= 0:
+            if not new_worker_inputs and queue_size <= 0:
                 self.stop_workers(self.workers, self.input_queue,
                         self.output_queue)
                 return self.site
 
-            for url_split in new_url_splits:
+            for worker_input in new_worker_inputs:
                 queue_size += 1
-                self.input_queue.put(url_split, False)
+                self.input_queue.put(worker_input, False)
 
 
     def build_queue(self, config):
@@ -127,17 +127,18 @@ class PageCrawler(object):
         """Starts page crawling loop for this worker."""
 
         while True:
-            url_split_to_crawl = self.input_queue.get()
+            worker_input = self.input_queue.get()
 
-            if url_split_to_crawl == WORK_DONE:
+            if worker_input == WORK_DONE:
                 # No more work! Pfew!
                 return
             else:
-                page_crawl = self._crawl_page(url_split_to_crawl)
+                page_crawl = self._crawl_page(worker_input)
                 self.output_queue.put(page_crawl)
 
-    def _crawl_page(self, url_split_to_crawl):
+    def _crawl_page(self, worker_input):
         page_crawl = None
+        url_split_to_crawl = worker_input.url_split
 
         try:
             response = open_url(self.urlopen, url_split_to_crawl.geturl(),
@@ -171,15 +172,14 @@ class PageCrawler(object):
                 final_url_split = get_clean_url_split(response.final_url)
 
                 mime_type = get_content_type(response.content.info())
+                links = []
 
-                if mime_type == HTML_MIME_TYPE:
+                is_html = mime_type == HTML_MIME_TYPE
+
+                if is_html and worker_input.should_crawl:
                     html_soup = BeautifulSoup(response.content,
                             self.worker_config.parser)
                     links = self.get_links(html_soup, final_url_split)
-                    is_html = True
-                else:
-                    links = []
-                    is_html = False
 
                 page_crawl = PageCrawl(original_url_split=url_split_to_crawl,
                     final_url_split=final_url_split, status=response.status,
@@ -293,3 +293,5 @@ def execute_from_command_line():
 
     crawler = ThreadSiteCrawler(config)
     crawler.crawl()
+
+    print(crawler.site.pages)
