@@ -7,6 +7,7 @@ from __future__ import unicode_literals, absolute_import
 from collections import namedtuple
 from optparse import OptionParser, OptionGroup
 
+from pylinkchecker.compat import get_safe_str
 from pylinkchecker.urlutil import get_clean_url_split
 
 
@@ -94,8 +95,17 @@ PageStatus = namedtuple("PageStatus", ["status", "sources"])
 
 PageSource = namedtuple("PageSource", ["origin", "origin_str"])
 
+class UTF8Class(object):
+    """Handles unicode string from __unicode__() in: __str__() and __repr__()
+    """
+    def __str__(self):
+        return get_safe_str(self.__unicode__())
 
-class Config(object):
+    def __repr__(self):
+        return get_safe_str(self.__unicode__())
+
+
+class Config(UTF8Class):
     """Contains all the configuration options."""
 
     def __init__(self):
@@ -238,8 +248,12 @@ class Config(object):
 
         return parser
 
+    def __unicode__(self):
+        return "Configuration - Start URLs: {0} - Options: {1}".format(
+                self.start_urls, self.options)
 
-class SitePage(object):
+
+class SitePage(UTF8Class):
     """Contains the crawling result for a page.
 
     This is a class because we need to keep track of the various sources
@@ -258,14 +272,26 @@ class SitePage(object):
         self.is_timeout = is_timeout
         self.exception = exception
         self.is_html = is_html
-        self.is_ok = status and status < 400
         self.is_local = is_local
+        self.is_ok = status and status < 400
 
     def add_sources(self, page_sources):
         self.sources.extend(page_sources)
 
+    def get_status_message(self):
+        if self.status:
+            if self.status < 400:
+                return "ok ({0})".format(self.status)
+            elif self.status == 404:
+                return "not found (404)"
+            else:
+                return "error ({0})".format(self.status)
 
-class Site(object):
+    def __unicode__(self):
+        return "Resource {0} - {1}".format(self.url_split.geturl(), self.status)
+
+
+class Site(UTF8Class):
     """Contains all the visited and visiting pages of a site.
 
     This class is NOT thread-safe and should only be accessed by one thread at
@@ -305,6 +331,8 @@ class Site(object):
             return []
 
         final_url_split = page_crawl.final_url_split
+        if not final_url_split:
+            final_url_split = page_crawl.original_url_split
         if final_url_split in self.pages:
             # This means that we already processed this final page (redirect).
             # It's ok. Just add a source
@@ -316,6 +344,7 @@ class Site(object):
                     page_crawl.is_timeout, page_crawl.exception,
                     page_crawl.is_html, is_local)
             site_page.add_sources(status.sources)
+            self.pages[final_url_split] = site_page
 
         return self.process_links(page_crawl)
 
@@ -344,3 +373,6 @@ class Site(object):
                 page_status.sources.append(page_source)
 
         return links_to_process
+
+    def __unicode__(self):
+        return "Site for {0}".format(self.start_url_splits)

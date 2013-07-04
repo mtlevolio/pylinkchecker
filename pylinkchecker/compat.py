@@ -15,6 +15,7 @@ if sys.version_info[0] < 3:
     import Queue
     unicode = unicode
     get_content_type = lambda m: m.gettype()
+    get_safe_str = lambda s: s.encode("utf-8")
 else:
     range = range
     import urllib.parse as urlparse
@@ -24,6 +25,7 @@ else:
     import queue as Queue
     unicode = str
     get_content_type = lambda m: m.get_content_type()
+    get_safe_str = lambda s: s
 
 
 def get_url_open():

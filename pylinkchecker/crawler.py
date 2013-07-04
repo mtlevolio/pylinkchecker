@@ -13,6 +13,7 @@ from pylinkchecker.compat import (range, HTTPError, get_url_open, unicode,
         get_content_type)
 from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
         ExceptionStr, Link, Site, WorkerInput, TYPE_ATTRIBUTES, HTML_MIME_TYPE)
+from pylinkchecker.reporter import report_plain_text
 from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
         is_link)
 
@@ -150,14 +151,14 @@ class PageCrawler(object):
                     page_crawl = PageCrawl(
                             original_url_split=url_split_to_crawl,
                             final_url_split=None, status=response.status,
-                            is_timeout=False, is_redirect=False, links=None,
+                            is_timeout=False, is_redirect=False, links=[],
                             exception=None, is_html=False)
                 elif response.is_timeout:
                     # This is a timeout. No need to wrap the exception
                     page_crawl = PageCrawl(
                             original_url_split=url_split_to_crawl,
                             final_url_split=None, status=None,
-                            is_timeout=True, is_redirect=False, links=None,
+                            is_timeout=True, is_redirect=False, links=[],
                             exception=None, is_html=False)
                 else:
                     # Something bad happened when opening the url
@@ -166,7 +167,7 @@ class PageCrawler(object):
                     page_crawl = PageCrawl(
                             original_url_split=url_split_to_crawl,
                             final_url_split=None, status=None,
-                            is_timeout=False, is_redirect=False, links=None,
+                            is_timeout=False, is_redirect=False, links=[],
                             exception=exception, is_html=False)
             else:
                 final_url_split = get_clean_url_split(response.final_url)
@@ -189,7 +190,7 @@ class PageCrawler(object):
             exception = ExceptionStr(unicode(type(exc)), unicode(exc))
             page_crawl = PageCrawl(original_url_split=url_split_to_crawl,
                     final_url_split=None, status=None,
-                    is_timeout=False, is_redirect=False, links=None,
+                    is_timeout=False, is_redirect=False, links=[],
                     exception=exception, is_html=False)
 
         return page_crawl
@@ -294,4 +295,4 @@ def execute_from_command_line():
     crawler = ThreadSiteCrawler(config)
     crawler.crawl()
 
-    print(crawler.site.pages)
+    report_plain_text(crawler.site)
