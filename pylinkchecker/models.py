@@ -371,6 +371,11 @@ class Site(UTF8Class):
 
     def process_links(self, page_crawl):
         links_to_process = []
+
+        source_url_split = page_crawl.original_url_split
+        if page_crawl.final_url_split:
+            source_url_split = page_crawl.final_url_split
+
         for link in page_crawl.links:
             url_split = link.url_split
             if not self.config.should_download(url_split):
@@ -378,7 +383,7 @@ class Site(UTF8Class):
 
             page_status = self.page_statuses.get(url_split, None)
 
-            page_source = PageSource(url_split, link.source_str)
+            page_source = PageSource(source_url_split, link.source_str)
 
             if not page_status:
                 # We never encountered this url before
