@@ -50,6 +50,11 @@ WHEN_ALWAYS = "always"
 WHEN_ON_ERROR = "error"
 
 
+REPORT_TYPE_ERRORS = "errors"
+REPORT_TYPE_SUMMARY = "summary"
+REPORT_TYPE_ALL = "all"
+
+
 VERBOSE_QUIET = "0"
 VERBOSE_NORMAL = "1"
 VERBOSE_INFO = "2"
@@ -212,6 +217,8 @@ class Config(UTF8Class):
                 default=",".join(DEFAULT_TYPES))
         crawler_group.add_option("-T", "--timeout", dest="timeout",
                 type="int", action="store", default=DEFAULT_TIMEOUT)
+        crawler_group.add_option("-P", "--progress", dest="progress",
+                action="store_true", default=False)
         # TODO Add follow redirect option.
 
         parser.add_option_group(crawler_group)
@@ -225,7 +232,7 @@ class Config(UTF8Class):
         perf_group.add_option("-m", "--mode", dest="mode", action="store",
                 default=MODE_THREAD, choices=[MODE_THREAD, MODE_PROCESS,
                 MODE_GREEN])
-        perf_group.add_option("-P", "--parser", dest="parser", action="store",
+        perf_group.add_option("-R", "--parser", dest="parser", action="store",
                 default=PARSER_STDLIB, choices=[PARSER_STDLIB, PARSER_LXML])
 
         parser.add_option_group(perf_group)
@@ -241,6 +248,9 @@ class Config(UTF8Class):
                 default=None)
         output_group.add_option("-W", "--when", dest="when", action="store",
                 default=WHEN_ALWAYS, choices=[WHEN_ALWAYS, WHEN_ON_ERROR])
+        output_group.add_option("-E", "--report-type", dest="report_type",
+                action="store", default=REPORT_TYPE_ERRORS, choices=[
+                REPORT_TYPE_ERRORS, REPORT_TYPE_SUMMARY, REPORT_TYPE_ALL])
 
         parser.add_option_group(output_group)
 
@@ -304,6 +314,9 @@ class Site(UTF8Class):
         self.pages = {}
         """Map of url:SitePage"""
 
+        self.error_pages = {}
+        """Map of url:SitePage with is_ok=False"""
+
         self.page_statuses = {}
         """Map of url:PageStatus (PAGE_QUEUED, PAGE_CRAWLED)"""
 
@@ -311,6 +324,11 @@ class Site(UTF8Class):
 
         for start_url_split in self.start_url_splits:
             self.page_statuses[start_url_split] = PageStatus(PAGE_QUEUED, [])
+
+    @property
+    def is_ok(self):
+        """Returns True if there is no error page."""
+        return len(self.error_pages) == 0
 
     def add_crawled_page(self, page_crawl):
         """Adds a crawled page. Returns a list of url split to crawl"""
@@ -345,6 +363,9 @@ class Site(UTF8Class):
                     page_crawl.is_html, is_local)
             site_page.add_sources(status.sources)
             self.pages[final_url_split] = site_page
+
+            if not site_page.is_ok:
+                self.error_pages[final_url_split] = site_page
 
         return self.process_links(page_crawl)
 

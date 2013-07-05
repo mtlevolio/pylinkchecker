@@ -5,6 +5,7 @@ Contains the crawling logic.
 from __future__ import unicode_literals, absolute_import
 
 import sys
+import time
 
 from pylinkchecker.bs4 import BeautifulSoup
 
@@ -44,20 +45,53 @@ class SiteCrawler(object):
 
         self.start_workers(self.workers, self.input_queue, self.output_queue)
 
+        self.start_progress()
+
         while True:
             page_crawl = self.output_queue.get()
             queue_size -= 1
             new_worker_inputs = self.process_page_crawl(page_crawl)
 
-            if not new_worker_inputs and queue_size <= 0:
-                self.stop_workers(self.workers, self.input_queue,
-                        self.output_queue)
-                return self.site
-
             for worker_input in new_worker_inputs:
                 queue_size += 1
                 self.input_queue.put(worker_input, False)
 
+            self.progress(page_crawl, len(self.site.pages), queue_size)
+
+            if queue_size <= 0:
+                self.stop_workers(self.workers, self.input_queue,
+                        self.output_queue)
+                self.stop_progress()
+                return self.site
+
+
+    def start_progress(self):
+        if self.config.options.progress:
+            print("Starting crawl...")
+
+    def stop_progress(self):
+        if self.config.options.progress:
+            print("Crawling Done...\n")
+
+    def progress(self, page_crawl, done_size, queue_size):
+        if not self.config.options.progress:
+            return
+
+        total = done_size + queue_size
+        percent = float(done_size) / float(total) * 100.0
+
+        url = ""
+        if page_crawl.final_url_split:
+            url = page_crawl.final_url_split.geturl()
+        elif page_crawl.original_url_split:
+            url = page_crawl.original_url_split.geturl()
+
+        status = page_crawl.status
+        if not status:
+            status = "error"
+
+        print("{0} - {1} ({2} of {3} - {4:.0f}%)".format(
+            status, url, done_size, total, percent))
 
     def build_queue(self, config):
         """Returns an object implementing the Queue interface."""
@@ -285,6 +319,7 @@ def open_url(open_func, url, timeout, timeout_exception):
 
 
 def execute_from_command_line():
+    start = time.time()
     config = Config()
     config.parse_config()
 
@@ -295,4 +330,9 @@ def execute_from_command_line():
     crawler = ThreadSiteCrawler(config)
     crawler.crawl()
 
-    report_plain_text(crawler.site)
+    stop = time.time()
+
+    report_plain_text(crawler.site, config, stop - start)
+
+    if not crawler.site.is_ok:
+        sys.exit(1)

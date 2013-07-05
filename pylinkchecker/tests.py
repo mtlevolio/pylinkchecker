@@ -12,7 +12,8 @@ import unittest
 
 import pylinkchecker.compat as compat
 from pylinkchecker.compat import SocketServer, SimpleHTTPServer, get_url_open
-from pylinkchecker.crawler import open_url, PageCrawler, WORK_DONE
+from pylinkchecker.crawler import (open_url, PageCrawler, WORK_DONE,
+        ThreadSiteCrawler)
 from pylinkchecker.models import (Config, WorkerInit, WorkerConfig, WorkerInput,
         PARSER_STDLIB)
 from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
@@ -20,6 +21,54 @@ from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
 
 TEST_FILES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         'testfiles')
+
+
+### UTILITY CLASSES AND FUNCTIONS ###
+
+class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+    pass
+
+
+def start_http_server():
+    """Starts a simple http server for the test files"""
+    # For the http handler
+    os.chdir(TEST_FILES_DIR)
+    handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+    httpd = ThreadedTCPServer(("localhost", 0), handler)
+    ip, port = httpd.server_address
+
+    httpd_thread = threading.Thread(target=httpd.serve_forever)
+    httpd_thread.setDaemon(True)
+    httpd_thread.start()
+
+    return (ip, port, httpd, httpd_thread)
+
+
+def has_multiprocessing():
+    has_multi = False
+
+    try:
+        import multiprocessing
+        has_multi = True
+    except Exception:
+        pass
+
+    return has_multi
+
+
+def has_gevent():
+    has_gevent = False
+
+    try:
+        import gevent
+        has_gevent = True
+    except Exception:
+        pass
+
+    return has_gevent
+
+
+### UNIT AND INTEGRATION TESTS ###
 
 
 class ConfigTest(unittest.TestCase):
@@ -79,23 +128,6 @@ class URLUtilTest(unittest.TestCase):
         self.assertEqual("https://www.example.com/test.html",
             get_absolute_url_split("../test.html", base_url_split).geturl())
 
-class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    pass
-
-
-def start_http_server():
-    """Starts a simple http server for the test files"""
-    # For the http handler
-    os.chdir(TEST_FILES_DIR)
-    handler = SimpleHTTPServer.SimpleHTTPRequestHandler
-    httpd = ThreadedTCPServer(("localhost", 0), handler)
-    ip, port = httpd.server_address
-
-    httpd_thread = threading.Thread(target=httpd.serve_forever)
-    httpd_thread.setDaemon(True)
-    httpd_thread.start()
-
-    return (ip, port, httpd, httpd_thread)
 
 
 class CrawlerTest(unittest.TestCase):
@@ -120,6 +152,10 @@ class CrawlerTest(unittest.TestCase):
                     start_http_server()
             # FIXME replace by thread synchronization on start
             time.sleep(0.2)
+        self.argv = sys.argv
+
+    def tearDown(self):
+        sys.argv = self.argv
 
     def get_url(self, test_url):
         return "http://{0}:{1}{2}".format(self.ip, self.port, test_url)
@@ -231,5 +267,16 @@ class CrawlerTest(unittest.TestCase):
         self.assertEqual(200, page_crawl.status)
         self.assertTrue(len(page_crawl.links) > 0)
 
-    def test_site_crawler(self):
-        pass
+    def test_site_thread_crawler_plain(self):
+        url = self.get_url("/index.html")
+        sys.argv = ['pylinkchecker', url]
+        config = Config()
+        config.parse_config()
+
+        crawler = ThreadSiteCrawler(config)
+        crawler.crawl()
+
+        site = crawler.site
+        self.assertEqual(11, len(site.pages))
+        self.assertEqual(1, len(site.error_pages))
+
