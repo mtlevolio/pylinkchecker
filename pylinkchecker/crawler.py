@@ -355,7 +355,8 @@ def open_url(open_func, url, timeout, timeout_exception):
             is_timeout=True)
     except Exception as exc:
         response = Response(content=None, status=None, exception=exc,
-            original_url=url, final_url=None, is_redirect=False)
+            original_url=url, final_url=None, is_redirect=False,
+            is_timeout=False)
 
     return response
 
