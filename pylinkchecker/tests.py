@@ -13,7 +13,7 @@ import unittest
 import pylinkchecker.compat as compat
 from pylinkchecker.compat import SocketServer, SimpleHTTPServer, get_url_open
 from pylinkchecker.crawler import (open_url, PageCrawler, WORK_DONE,
-        ThreadSiteCrawler)
+        ThreadSiteCrawler, ProcessSiteCrawler, GreenSiteCrawler)
 from pylinkchecker.models import (Config, WorkerInit, WorkerConfig, WorkerInput,
         PARSER_STDLIB)
 from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
@@ -267,16 +267,29 @@ class CrawlerTest(unittest.TestCase):
         self.assertEqual(200, page_crawl.status)
         self.assertTrue(len(page_crawl.links) > 0)
 
-    def test_site_thread_crawler_plain(self):
+    def _run_crawler_plain(self, crawler_class):
         url = self.get_url("/index.html")
-        sys.argv = ['pylinkchecker', url]
+        sys.argv = ['pylinkchecker', "-m", "process", url]
         config = Config()
         config.parse_config()
 
-        crawler = ThreadSiteCrawler(config)
+        crawler = crawler_class(config)
         crawler.crawl()
 
         site = crawler.site
         self.assertEqual(11, len(site.pages))
         self.assertEqual(1, len(site.error_pages))
 
+    def test_site_thread_crawler_plain(self):
+        self._run_crawler_plain(ThreadSiteCrawler)
+
+    def test_site_process_crawler_plain(self):
+        if not has_multiprocessing():
+            return
+        self._run_crawler_plain(ProcessSiteCrawler)
+
+    def test_site_gevent_crawler_plain(self):
+        if not has_gevent():
+            return
+        # TODO test gevent. Cannot use threaded simple http server :-(
+        self.assertTrue(True)

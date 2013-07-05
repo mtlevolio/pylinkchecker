@@ -13,7 +13,8 @@ import pylinkchecker.compat as compat
 from pylinkchecker.compat import (range, HTTPError, get_url_open, unicode,
         get_content_type)
 from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
-        ExceptionStr, Link, Site, WorkerInput, TYPE_ATTRIBUTES, HTML_MIME_TYPE)
+        ExceptionStr, Link, Site, WorkerInput, TYPE_ATTRIBUTES, HTML_MIME_TYPE,
+        MODE_THREAD, MODE_PROCESS, MODE_GREEN)
 from pylinkchecker.reporter import report_plain_text
 from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
         is_link)
@@ -137,12 +138,53 @@ class ThreadSiteCrawler(SiteCrawler):
 
 class ProcessSiteCrawler(SiteCrawler):
     """Site Crawler with process workers."""
-    pass
+
+    def __init__(self, *args, **kwargs):
+        import multiprocessing
+        self.manager = multiprocessing.Manager()
+        self.ProcessClass = multiprocessing.Process
+        super(ProcessSiteCrawler, self).__init__(*args, **kwargs)
+
+    def build_queue(self, config):
+        return self.manager.Queue()
+
+    def get_workers(self, config, worker_init):
+        workers = []
+        for _ in range(config.worker_size):
+            workers.append(self.ProcessClass(target=crawl_page, kwargs={'worker_init':
+                worker_init}))
+
+        return workers
+
+    def start_workers(self, workers, input_queue, output_queue):
+        for worker in workers:
+            worker.start()
 
 
 class GreenSiteCrawler(SiteCrawler):
     """Site Crawler with green thread workers."""
-    pass
+
+    def __init__(self, *args, **kwargs):
+        from gevent import monkey, queue, Greenlet
+        monkey.patch_all(thread=False)
+        self.QueueClass = queue.JoinableQueue
+        self.GreenClass = Greenlet
+        super(GreenSiteCrawler, self).__init__(*args, **kwargs)
+
+    def build_queue(self, config):
+        return self.QueueClass()
+
+    def get_workers(self, config, worker_init):
+        workers = []
+        for _ in range(config.worker_size):
+            workers.append(self.GreenClass(crawl_page,
+                    worker_init=worker_init))
+
+        return workers
+
+    def start_workers(self, workers, input_queue, output_queue):
+        for worker in workers:
+            worker.start()
 
 
 class PageCrawler(object):
@@ -327,7 +369,17 @@ def execute_from_command_line():
         print("At least one starting URL must be supplied.")
         sys.exit(1)
 
-    crawler = ThreadSiteCrawler(config)
+    if config.options.mode == MODE_THREAD:
+        crawler = ThreadSiteCrawler(config)
+    elif config.options.mode == MODE_PROCESS:
+        crawler = ProcessSiteCrawler(config)
+    elif config.options.mode == MODE_GREEN:
+        crawler = GreenSiteCrawler(config)
+
+    if not crawler:
+        print("Invalid crawling mode supplied.")
+        sys.exit(1)
+
     crawler.crawl()
 
     stop = time.time()
