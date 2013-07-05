@@ -11,7 +11,8 @@ import threading
 import unittest
 
 import pylinkchecker.compat as compat
-from pylinkchecker.compat import SocketServer, SimpleHTTPServer, get_url_open
+from pylinkchecker.compat import (SocketServer, SimpleHTTPServer, get_url_open,
+        get_url_request)
 from pylinkchecker.crawler import (open_url, PageCrawler, WORK_DONE,
         ThreadSiteCrawler, ProcessSiteCrawler, GreenSiteCrawler)
 from pylinkchecker.models import (Config, WorkerInit, WorkerConfig, WorkerInput,
@@ -181,7 +182,8 @@ class CrawlerTest(unittest.TestCase):
         urlopen = get_url_open()
         import socket
         url = self.get_url("/does_not_exist.html")
-        response = open_url(urlopen, url, 5, socket.timeout)
+        response = open_url(urlopen, get_url_request(), url, 5,
+                socket.timeout)
 
         self.assertEqual(404, response.status)
         self.assertTrue(response.exception is not None)
@@ -190,7 +192,7 @@ class CrawlerTest(unittest.TestCase):
         urlopen = get_url_open()
         import socket
         url = self.get_url("/index.html")
-        response = open_url(urlopen, url, 5, socket.timeout)
+        response = open_url(urlopen, get_url_request(), url, 5, socket.timeout)
 
         self.assertEqual(200, response.status)
         self.assertTrue(response.exception is None)
@@ -199,7 +201,7 @@ class CrawlerTest(unittest.TestCase):
         urlopen = get_url_open()
         import socket
         url = self.get_url("/sub")
-        response = open_url(urlopen, url, 5, socket.timeout)
+        response = open_url(urlopen, get_url_request(), url, 5, socket.timeout)
 
         self.assertEqual(200, response.status)
         self.assertTrue(response.is_redirect)

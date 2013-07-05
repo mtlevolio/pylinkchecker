@@ -35,3 +35,11 @@ def get_url_open():
     else:
         from urllib.request import urlopen
     return urlopen
+
+
+def get_url_request():
+    if sys.version_info[0] < 3:
+        from urllib2 import Request
+    else:
+        from urllib.request import Request
+    return Request

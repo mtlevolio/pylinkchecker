@@ -4,6 +4,7 @@ Contains the crawling logic.
 """
 from __future__ import unicode_literals, absolute_import
 
+import base64
 import sys
 import time
 
@@ -11,7 +12,7 @@ from pylinkchecker.bs4 import BeautifulSoup
 
 import pylinkchecker.compat as compat
 from pylinkchecker.compat import (range, HTTPError, get_url_open, unicode,
-        get_content_type)
+        get_content_type, get_url_request)
 from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
         ExceptionStr, Link, Site, WorkerInput, TYPE_ATTRIBUTES, HTML_MIME_TYPE,
         MODE_THREAD, MODE_PROCESS, MODE_GREEN)
@@ -195,10 +196,19 @@ class PageCrawler(object):
         self.input_queue = worker_init.input_queue
         self.output_queue = worker_init.output_queue
         self.urlopen = get_url_open()
+        self.request_class = get_url_request()
 
         # We do this here to allow patching by gevent
         import socket
         self.timeout_exception = socket.timeout
+
+        self.auth_header = None
+
+        if self.worker_config.username and self.worker_config.password:
+            base64string = unicode(base64.encodestring(
+                    '{0}:{1}'.format(self.worker_config.username,
+                    self.worker_config.password).encode("utf-8")), "utf-8")
+            self.auth_header = ("Authorization", "Basic {0}".format(base64string))
 
     def crawl_page_forever(self):
         """Starts page crawling loop for this worker."""
@@ -218,8 +228,9 @@ class PageCrawler(object):
         url_split_to_crawl = worker_input.url_split
 
         try:
-            response = open_url(self.urlopen, url_split_to_crawl.geturl(),
-                    self.worker_config.timeout, self.timeout_exception)
+            response = open_url(self.urlopen, self.request_class,
+                    url_split_to_crawl.geturl(), self.worker_config.timeout,
+                    self.timeout_exception, self.auth_header)
 
             if response.exception:
                 if response.status:
@@ -324,21 +335,27 @@ def crawl_page(worker_init):
     page_crawler.crawl_page_forever()
 
 
-def open_url(open_func, url, timeout, timeout_exception):
+def open_url(open_func, request_class, url, timeout, timeout_exception,
+        auth_header=None):
     """Opens a URL and returns a Response object.
 
     All parameters are required to be able to use a patched version of the
     Python standard library (i.e., patched by gevent)
 
     :param open_func: url open function, typicaly urllib2.urlopen
+    :param request_class: the request class to use
     :param url: the url to open
     :param timeout: number of seconds to wait before timing out
     :param timeout_exception: the exception thrown by open_func if a timeout
             occurs
+    :param auth_header: authentication header
     :rtype: A Response object
     """
     try:
-        output_value = open_func(url)
+        request = request_class(url)
+        if auth_header:
+            request.add_header(auth_header[0], auth_header[1])
+        output_value = open_func(request)
         final_url = output_value.geturl()
         code = output_value.getcode()
         response = Response(content=output_value, status=code, exception=None,
