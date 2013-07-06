@@ -3,9 +3,9 @@ pylinkchecker
 
 :Version: 0.1
 
-pylinkchecker is a simple crawler that traverses a web sites and reports errors
-(e.g., 500 and 404 errors) encountered. The crawler can try to download
-resources like images.
+pylinkchecker is a standalone and pure python crawler that traverses a web sites
+and reports errors (e.g., 500 and 404 errors) encountered. The crawler can try
+to download resources like images.
 
 
 Requirements
@@ -45,7 +45,47 @@ Installation
 Usage
 -----
 
-To be done
+::
+
+  Usage: pylinkcheck.py [options] URL ...
+
+  Options:
+    --version             show program's version number and exit
+    -h, --help            show this help message and exit
+    -V VERBOSE, --verbose=VERBOSE
+
+    Crawler Options:
+      These options modify the way the crawler traverses the site.
+
+      -O, --test-outside  fetch resources from other domains without crawling
+                          them
+      -H ACCEPTED_HOSTS, --accepted-hosts=ACCEPTED_HOSTS
+                          comma-separated list of additional hosts to crawl
+                          (e.g., example.com,subdomain.another.com)
+      -i IGNORED_PREFIXES, --ignore=IGNORED_PREFIXES
+                          comma-separated list of host/path prefixes to ignore
+                          (e.g., www.example.com/ignore_this_and_after/)
+      -u USERNAME, --username=USERNAME
+      -p PASSWORD, --password=PASSWORD
+      -U, --unique
+      -t TYPES, --types=TYPES
+      -T TIMEOUT, --timeout=TIMEOUT
+      -P, --progress
+
+    Performance Options:
+      These options can impact the performance of the crawler.
+
+      -w WORKERS, --workers=WORKERS
+      -m MODE, --mode=MODE
+      -R PARSER, --parser=PARSER
+
+    Output Options:
+      These options change the output of the crawler.
+
+      -f FORMAT, --format=FORMAT
+      -o OUTPUT, --output=OUTPUT
+      -W WHEN, --when=WHEN
+      -E REPORT_TYPE, --report-type=REPORT_TYPE
 
 
 License
