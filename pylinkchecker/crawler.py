@@ -35,12 +35,13 @@ class SiteCrawler(object):
         self.workers = []
         self.input_queue = self.build_queue(config)
         self.output_queue = self.build_queue(config)
-        self.worker_init = WorkerInit(self.config.worker_config,
-            self.input_queue, self.output_queue)
         self.site = Site(self.start_url_splits, config)
 
     def crawl(self):
-        self.workers = self.get_workers(self.config, self.worker_init)
+        worker_init = WorkerInit(self.config.worker_config,
+            self.input_queue, self.output_queue)
+        self.workers = self.get_workers(self.config, worker_init)
+
         queue_size = len(self.start_url_splits)
         for start_url_split in self.start_url_splits:
             self.input_queue.put(WorkerInput(start_url_split, True), False)
@@ -167,8 +168,8 @@ class GreenSiteCrawler(SiteCrawler):
 
     def __init__(self, *args, **kwargs):
         from gevent import monkey, queue, Greenlet
-        monkey.patch_all(thread=False)
-        self.QueueClass = queue.JoinableQueue
+        monkey.patch_all()
+        self.QueueClass = queue.Queue
         self.GreenClass = Greenlet
         super(GreenSiteCrawler, self).__init__(*args, **kwargs)
 
@@ -355,7 +356,7 @@ def open_url(open_func, request_class, url, timeout, timeout_exception,
         request = request_class(url)
         if auth_header:
             request.add_header(auth_header[0], auth_header[1])
-        output_value = open_func(request)
+        output_value = open_func(request, timeout=timeout)
         final_url = output_value.geturl()
         code = output_value.getcode()
         response = Response(content=output_value, status=code, exception=None,

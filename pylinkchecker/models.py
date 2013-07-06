@@ -120,7 +120,6 @@ class Config(UTF8Class):
         self.worker_config = None
         self.accepted_hosts = []
         self.ignored_prefixes = []
-        self.test_outside = False
         self.worker_size = 0
 
     def is_local(self, url_split):
@@ -132,7 +131,7 @@ class Config(UTF8Class):
         it is local or outside links are allowed."""
         local = self.is_local(url_split)
 
-        if not self.test_outside and not local:
+        if not self.options.test_outside and not local:
             return False
 
         url = url_split.geturl()
@@ -295,6 +294,7 @@ class SitePage(UTF8Class):
             elif self.status == 404:
                 return "not found (404)"
             else:
+                # TODO better status needed
                 return "error ({0})".format(self.status)
 
     def __unicode__(self):
@@ -357,6 +357,7 @@ class Site(UTF8Class):
             site_page = self.pages[final_url_split]
             site_page.add_sources(status.sources)
         else:
+            # We never crawled this page before
             is_local = self.config.is_local(final_url_split)
             site_page = SitePage(final_url_split, page_crawl.status,
                     page_crawl.is_timeout, page_crawl.exception,
