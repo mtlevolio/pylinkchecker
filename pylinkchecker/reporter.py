@@ -103,24 +103,25 @@ def oprint(message, files):
 
 
 def send_email(email_file, site, config):
-    if config.subject:
-        subject = config.subject
+    options = config.options
+    if options.subject:
+        subject = options.subject
     else:
         if site.is_ok:
             subject = "SUCCESS - {0}".format(site.start_url_splits[0].geturl())
         else:
             subject = "ERROR - {0}".format(site.start_url_splits[0].geturl())
 
-    if config.from_address:
-        from_address = config.from_address
+    if options.from_address:
+        from_address = options.from_address
     else:
         from_address = "pylinkchecker@localhost"
 
-    if not config.options.address:
+    if not options.address:
         print("Email address must be specified when using smtp.")
         sys.exit(1)
 
-    addresses = config.options.address.split(",")
+    addresses = options.address.split(",")
 
     msg = EMAIL_HEADER.format(from_address, subject, ", ".join(addresses),
             PLAIN_TEXT, email_file.getvalue())
@@ -137,4 +138,4 @@ def send_email(email_file, site, config):
 
     smtpserver.sendmail(from_address, addresses, msg)
 
-    smtpserver.close()
+    smtpserver.quit()
