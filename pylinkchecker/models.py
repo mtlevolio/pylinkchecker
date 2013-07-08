@@ -216,8 +216,8 @@ class Config(UTF8Class):
                 action="store", default=None)
         crawler_group.add_option("-p", "--password", dest="password",
                 action="store", default=None)
-        crawler_group.add_option("-U", "--unique", dest="unique",
-                action="store_true", default=False)
+        # crawler_group.add_option("-U", "--unique", dest="unique",
+        #         action="store_true", default=False)
         crawler_group.add_option("-t", "--types", dest="types", action="store",
                 default=",".join(DEFAULT_TYPES))
         crawler_group.add_option("-T", "--timeout", dest="timeout",
@@ -247,8 +247,7 @@ class Config(UTF8Class):
                 "These options change the output of the crawler.")
 
         output_group.add_option("-f", "--format", dest="format", action="store",
-                default=FORMAT_PLAIN, choices=[FORMAT_PLAIN, FORMAT_HTML,
-                FORMAT_JSON])
+                default=FORMAT_PLAIN, choices=[FORMAT_PLAIN])
         output_group.add_option("-o", "--output", dest="output", action="store",
                 default=None)
         output_group.add_option("-W", "--when", dest="when", action="store",
