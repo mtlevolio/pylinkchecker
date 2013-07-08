@@ -118,6 +118,8 @@ class Config(UTF8Class):
     """Contains all the configuration options."""
 
     def __init__(self):
+        # Design note: we only use attributes when options need to be
+        # transformed. Otherwise, we use options.
         self.parser = self._build_parser()
         self.options = None
         self.start_urls = []
