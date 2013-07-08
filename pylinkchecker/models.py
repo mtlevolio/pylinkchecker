@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Contains the crawling models.
+Contains the crawling models. We use namedtuple for most models (easier to
+pickle, lower footprint, indicates that it is immutable) and we use classes for
+objects with mutable states and helper methods.
+
+Classes with crawling logic are declared in the crawler module.
 """
 from __future__ import unicode_literals, absolute_import
 
@@ -115,7 +119,7 @@ class Config(UTF8Class):
 
     def __init__(self):
         self.parser = self._build_parser()
-        self.options = {}
+        self.options = None
         self.start_urls = []
         self.worker_config = None
         self.accepted_hosts = []
@@ -296,110 +300,10 @@ class SitePage(UTF8Class):
             else:
                 # TODO better status needed
                 return "error ({0})".format(self.status)
+        else:
+            return "error"
 
     def __unicode__(self):
         return "Resource {0} - {1}".format(self.url_split.geturl(), self.status)
 
 
-class Site(UTF8Class):
-    """Contains all the visited and visiting pages of a site.
-
-    This class is NOT thread-safe and should only be accessed by one thread at
-    a time!
-    """
-
-    def __init__(self, start_url_splits, config):
-        self.start_url_splits = start_url_splits
-
-        self.pages = {}
-        """Map of url:SitePage"""
-
-        self.error_pages = {}
-        """Map of url:SitePage with is_ok=False"""
-
-        self.page_statuses = {}
-        """Map of url:PageStatus (PAGE_QUEUED, PAGE_CRAWLED)"""
-
-        self.config = config
-
-        for start_url_split in self.start_url_splits:
-            self.page_statuses[start_url_split] = PageStatus(PAGE_QUEUED, [])
-
-    @property
-    def is_ok(self):
-        """Returns True if there is no error page."""
-        return len(self.error_pages) == 0
-
-    def add_crawled_page(self, page_crawl):
-        """Adds a crawled page. Returns a list of url split to crawl"""
-        if not page_crawl.original_url_split in self.page_statuses:
-            # There is a problem! Should not happen.
-            # TODO LOG!
-            return []
-
-        status = self.page_statuses[page_crawl.original_url_split]
-
-        # Mark it as crawled
-        self.page_statuses[page_crawl.original_url_split] = PageStatus(
-                PAGE_CRAWLED, None)
-
-        if page_crawl.original_url_split in self.pages:
-            # There is a problem! Should not happen
-            # TODO LOG!
-            return []
-
-        final_url_split = page_crawl.final_url_split
-        if not final_url_split:
-            final_url_split = page_crawl.original_url_split
-        if final_url_split in self.pages:
-            # This means that we already processed this final page (redirect).
-            # It's ok. Just add a source
-            site_page = self.pages[final_url_split]
-            site_page.add_sources(status.sources)
-        else:
-            # We never crawled this page before
-            is_local = self.config.is_local(final_url_split)
-            site_page = SitePage(final_url_split, page_crawl.status,
-                    page_crawl.is_timeout, page_crawl.exception,
-                    page_crawl.is_html, is_local)
-            site_page.add_sources(status.sources)
-            self.pages[final_url_split] = site_page
-
-            if not site_page.is_ok:
-                self.error_pages[final_url_split] = site_page
-
-        return self.process_links(page_crawl)
-
-    def process_links(self, page_crawl):
-        links_to_process = []
-
-        source_url_split = page_crawl.original_url_split
-        if page_crawl.final_url_split:
-            source_url_split = page_crawl.final_url_split
-
-        for link in page_crawl.links:
-            url_split = link.url_split
-            if not self.config.should_download(url_split):
-                continue
-
-            page_status = self.page_statuses.get(url_split, None)
-
-            page_source = PageSource(source_url_split, link.source_str)
-
-            if not page_status:
-                # We never encountered this url before
-                self.page_statuses[url_split] = PageStatus(PAGE_QUEUED,
-                        [page_source])
-                links_to_process.append(
-                        WorkerInput(url_split, self.config.is_local(url_split)))
-            elif page_status.status == PAGE_CRAWLED:
-                # Already crawled. Add source
-                self.pages[url_split].add_sources([page_source])
-            elif page_status.status == PAGE_QUEUED:
-                # Already queued for crawling. Add source.
-                page_status.sources.append(page_source)
-
-        return links_to_process
-
-    def __unicode__(self):
-        return "Site for {0}".format(self.start_url_splits)
