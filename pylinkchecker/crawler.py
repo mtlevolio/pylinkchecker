@@ -17,7 +17,7 @@ from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
         ExceptionStr, Link, SitePage, WorkerInput, TYPE_ATTRIBUTES, HTML_MIME_TYPE,
         MODE_THREAD, MODE_PROCESS, MODE_GREEN, WHEN_ALWAYS, UTF8Class,
         PageStatus, PageSource, PAGE_QUEUED, PAGE_CRAWLED)
-from pylinkchecker.reporter import report_plain_text
+from pylinkchecker.reporter import report
 from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
         is_link)
 
@@ -512,7 +512,7 @@ def execute_from_command_line():
     stop = time.time()
 
     if not crawler.site.is_ok or config.options.when == WHEN_ALWAYS:
-        report_plain_text(crawler.site, config, stop - start)
+        report(crawler.site, config, stop - start)
 
     if not crawler.site.is_ok:
         sys.exit(1)

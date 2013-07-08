@@ -254,10 +254,32 @@ class Config(UTF8Class):
         output_group.add_option("-E", "--report-type", dest="report_type",
                 action="store", default=REPORT_TYPE_ERRORS, choices=[
                 REPORT_TYPE_ERRORS, REPORT_TYPE_SUMMARY, REPORT_TYPE_ALL])
+        output_group.add_option("-c", "--console", dest="console",
+                action="store_true", default=False)
 
         parser.add_option_group(output_group)
 
-        # TODO ADD EMAIL OPTIONS
+        email_group = OptionGroup(parser, "Email Options",
+                "These options allows the crawler to send a report by email.")
+
+        email_group.add_option("-a", "--address", dest="address", action="store",
+                default=None)
+        email_group.add_option("--from", dest="from_address", action="store",
+                default=None)
+        email_group.add_option("-s", "--smtp", dest="smtp", action="store",
+                default=None)
+        email_group.add_option("--port", dest="port", action="store",
+                default=25, type="int")
+        email_group.add_option("--tls", dest="tls", action="store_true",
+                default=False)
+        email_group.add_option("--subject", dest="subject", action="store",
+                default=None)
+        email_group.add_option("--smtp-username", dest="smtp_username",
+                action="store", default=None)
+        email_group.add_option("--smtp-password", dest="smtp_password",
+                action="store", default=None)
+
+        parser.add_option_group(email_group)
 
         return parser
 
