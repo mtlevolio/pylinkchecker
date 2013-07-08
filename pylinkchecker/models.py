@@ -213,17 +213,23 @@ class Config(UTF8Class):
                 help="comma-separated list of host/path prefixes to ignore "
                 "(e.g., www.example.com/ignore_this_and_after/)")
         crawler_group.add_option("-u", "--username", dest="username",
-                action="store", default=None)
+                action="store", default=None,
+                help="username to use with basic HTTP authentication")
         crawler_group.add_option("-p", "--password", dest="password",
-                action="store", default=None)
+                action="store", default=None,
+                help="password to use with basic HTTP authentication")
         # crawler_group.add_option("-U", "--unique", dest="unique",
         #         action="store_true", default=False)
         crawler_group.add_option("-t", "--types", dest="types", action="store",
-                default=",".join(DEFAULT_TYPES))
+                default=",".join(DEFAULT_TYPES),
+                help="Comma-separated values of tags to look for when crawling"
+                "a site. Default (and supported types): a,img,link,script")
         crawler_group.add_option("-T", "--timeout", dest="timeout",
-                type="int", action="store", default=DEFAULT_TIMEOUT)
+                type="int", action="store", default=DEFAULT_TIMEOUT,
+                help="Seconds to wait before considering that a page timed out")
         crawler_group.add_option("-P", "--progress", dest="progress",
-                action="store_true", default=False)
+                action="store_true", default=False,
+                help="Prints crawler progress in the console")
         # TODO Add follow redirect option.
 
         parser.add_option_group(crawler_group)
@@ -233,30 +239,40 @@ class Config(UTF8Class):
                 "These options can impact the performance of the crawler.")
 
         perf_group.add_option("-w", "--workers", dest="workers", action="store",
-                default=None, type="int")
+                default=None, type="int",
+                help="Number of workers to spawn")
         perf_group.add_option("-m", "--mode", dest="mode", action="store",
                 default=MODE_THREAD, choices=[MODE_THREAD, MODE_PROCESS,
-                MODE_GREEN])
+                MODE_GREEN],
+                help="Types of workers: thread (default), process, or green")
         perf_group.add_option("-R", "--parser", dest="parser", action="store",
-                default=PARSER_STDLIB, choices=[PARSER_STDLIB, PARSER_LXML])
+                default=PARSER_STDLIB, choices=[PARSER_STDLIB, PARSER_LXML],
+                help="Types of HTML parse: html.parser (default) or lxml")
 
         parser.add_option_group(perf_group)
-
 
         output_group = OptionGroup(parser, "Output Options",
                 "These options change the output of the crawler.")
 
         output_group.add_option("-f", "--format", dest="format", action="store",
-                default=FORMAT_PLAIN, choices=[FORMAT_PLAIN])
+                default=FORMAT_PLAIN, choices=[FORMAT_PLAIN],
+                help="Format of the report: plain")
         output_group.add_option("-o", "--output", dest="output", action="store",
-                default=None)
+                default=None,
+                help="Path of the file where the report will be printed.")
         output_group.add_option("-W", "--when", dest="when", action="store",
-                default=WHEN_ALWAYS, choices=[WHEN_ALWAYS, WHEN_ON_ERROR])
+                default=WHEN_ALWAYS, choices=[WHEN_ALWAYS, WHEN_ON_ERROR],
+                help="When to print the report. error (default, only if a "
+                "crawling error occurs) or always")
         output_group.add_option("-E", "--report-type", dest="report_type",
                 action="store", default=REPORT_TYPE_ERRORS, choices=[
-                REPORT_TYPE_ERRORS, REPORT_TYPE_SUMMARY, REPORT_TYPE_ALL])
+                REPORT_TYPE_ERRORS, REPORT_TYPE_SUMMARY, REPORT_TYPE_ALL],
+                help="Type of report to print: errors (default, summary and "
+                "erroneous links), summary, all (summary and all links)")
         output_group.add_option("-c", "--console", dest="console",
-                action="store_true", default=False)
+                action="store_true", default=False,
+                help="Prints report to the console in addition to other output"
+                " options such as file or email.")
 
         parser.add_option_group(output_group)
 
@@ -264,21 +280,31 @@ class Config(UTF8Class):
                 "These options allows the crawler to send a report by email.")
 
         email_group.add_option("-a", "--address", dest="address", action="store",
-                default=None)
+                default=None,
+                help="Comma-separated list of email addresses used to send a "
+                "report")
         email_group.add_option("--from", dest="from_address", action="store",
-                default=None)
+                default=None,
+                help="Email address to use in the from field of the email "
+                "(optional)")
         email_group.add_option("-s", "--smtp", dest="smtp", action="store",
-                default=None)
+                default=None,
+                help="Host of the smtp server")
         email_group.add_option("--port", dest="port", action="store",
-                default=25, type="int")
+                default=25, type="int",
+                help="Port of the smtp server (optional)")
         email_group.add_option("--tls", dest="tls", action="store_true",
-                default=False)
+                default=False,
+                help="Use TLS with the email server.")
         email_group.add_option("--subject", dest="subject", action="store",
-                default=None)
+                default=None,
+                help="Subject of the email (optional)")
         email_group.add_option("--smtp-username", dest="smtp_username",
-                action="store", default=None)
+                action="store", default=None,
+                help="Username to use with the smtp server (optional)")
         email_group.add_option("--smtp-password", dest="smtp_password",
-                action="store", default=None)
+                action="store", default=None,
+                help="Password to use with the smtp server (optional)")
 
         parser.add_option_group(email_group)
 
