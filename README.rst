@@ -3,17 +3,27 @@ pylinkchecker
 
 :Version: 0.1
 
-pylinkchecker is a standalone and pure python crawler that traverses a web sites
-and reports errors (e.g., 500 and 404 errors) encountered. The crawler can try
-to download resources like images.
+pylinkchecker is a standalone and pure python crawler that traverses a web site
+and reports errors (e.g., 500 and 404 errors) encountered. The crawler can also
+download resources such as images, scripts and stylesheets.
+
+pylinkchecker's performance can be improved by installing additional libraries
+that require a C compiler, but these libraries are optional.
+
+We created pylinkchecker so that it could be executed in environments without
+access to a compiler (e.g., Microsoft Windows, some *nix production
+environments) or with an old version of python (e.g., Centos).
+
+pylinkchecker is highly modular and has many configuration options, but the
+only required parameter is the starting url.
 
 
 Requirements
 ------------
 
 pylinkchecker does not require external libraries if executed with python 2.x.
-It requires beautifulsoup4 if executed with python 3.x.
-It has been tested on python 2.6, python 2.7, and python 3.3.
+It requires beautifulsoup4 if executed with python 3.x. It has been tested on
+python 2.6, python 2.7, and python 3.3.
 
 
 Optional Requirements
