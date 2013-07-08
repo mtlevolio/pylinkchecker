@@ -17,6 +17,8 @@ environments) or with an old version of python (e.g., Centos).
 pylinkchecker is highly modular and has many configuration options, but the
 only required parameter is the starting url.
 
+.. image:: https://api.travis-ci.org/auto123/pylinkchecker.png
+
 
 Requirements
 ------------
