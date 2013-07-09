@@ -3,9 +3,10 @@ pylinkchecker
 
 :Version: 0.1
 
-pylinkchecker is a standalone and pure python crawler that traverses a web site
-and reports errors (e.g., 500 and 404 errors) encountered. The crawler can also
-download resources such as images, scripts and stylesheets.
+pylinkchecker is a standalone and pure python link checker and crawler that
+traverses a web site and reports errors (e.g., 500 and 404 errors) encountered.
+The crawler can also download resources such as images, scripts and
+stylesheets.
 
 pylinkchecker's performance can be improved by installing additional libraries
 that require a C compiler, but these libraries are optional.
