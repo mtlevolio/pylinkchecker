@@ -427,7 +427,11 @@ class Site(UTF8Class):
                         WorkerInput(url_split, self.config.is_local(url_split)))
             elif page_status.status == PAGE_CRAWLED:
                 # Already crawled. Add source
-                self.pages[url_split].add_sources([page_source])
+                if url_split in self.pages:
+                    self.pages[url_split].add_sources([page_source])
+                else:
+                    # TODO the final url is different. need a way to link it...
+                    pass
             elif page_status.status == PAGE_QUEUED:
                 # Already queued for crawling. Add source.
                 page_status.sources.append(page_source)
