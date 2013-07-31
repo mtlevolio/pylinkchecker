@@ -19,7 +19,7 @@ from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
         PageStatus, PageSource, PAGE_QUEUED, PAGE_CRAWLED)
 from pylinkchecker.reporter import report
 from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
-        is_link)
+        is_link, SUPPORTED_SCHEMES)
 
 
 WORK_DONE = '__WORK_DONE__'
@@ -324,6 +324,9 @@ class PageCrawler(object):
                 if not is_link(url):
                     continue
                 abs_url_split = get_absolute_url_split(url, base_url_split)
+
+                if abs_url_split.scheme not in SUPPORTED_SCHEMES:
+                    continue
 
                 link = Link(type=unicode(element.name), url_split=abs_url_split,
                     original_url_split=original_url_split,
