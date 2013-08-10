@@ -269,26 +269,38 @@ class CrawlerTest(unittest.TestCase):
         self.assertEqual(200, page_crawl.status)
         self.assertTrue(len(page_crawl.links) > 0)
 
-    def _run_crawler_plain(self, crawler_class):
+    def _run_crawler_plain(self, crawler_class, other_options=None):
         url = self.get_url("/index.html")
         sys.argv = ['pylinkchecker', "-m", "process", url]
+        if not other_options:
+            other_options = []
+        sys.argv.extend(other_options)
         config = Config()
         config.parse_config()
 
         crawler = crawler_class(config)
         crawler.crawl()
 
-        site = crawler.site
-        self.assertEqual(11, len(site.pages))
-        self.assertEqual(1, len(site.error_pages))
+        return crawler.site
 
     def test_site_thread_crawler_plain(self):
-        self._run_crawler_plain(ThreadSiteCrawler)
+        site = self._run_crawler_plain(ThreadSiteCrawler)
+        self.assertEqual(11, len(site.pages))
+        self.assertEqual(1, len(site.error_pages))
 
     def test_site_process_crawler_plain(self):
         if not has_multiprocessing():
             return
-        self._run_crawler_plain(ProcessSiteCrawler)
+        site = self._run_crawler_plain(ProcessSiteCrawler)
+        self.assertEqual(11, len(site.pages))
+        self.assertEqual(1, len(site.error_pages))
+
+    def test_run_once(self):
+        site = self._run_crawler_plain(ThreadSiteCrawler, ["--runonce"])
+
+        # 8 pages linked on the index
+        self.assertEqual(8, len(site.pages))
+        self.assertEqual(0, len(site.error_pages))
 
     def test_site_gevent_crawler_plain(self):
         if not has_gevent():

@@ -128,6 +128,10 @@ class Config(UTF8Class):
         self.ignored_prefixes = []
         self.worker_size = 0
 
+    def should_crawl(self, url_split):
+        """Returns True if url split is local AND run_once is False"""
+        return not self.options.run_once and self.is_local(url_split)
+
     def is_local(self, url_split):
         """Returns true if url split is in the accepted hosts"""
         return url_split.netloc in self.accepted_hosts
@@ -230,6 +234,9 @@ class Config(UTF8Class):
         crawler_group.add_option("-P", "--progress", dest="progress",
                 action="store_true", default=False,
                 help="Prints crawler progress in the console")
+        crawler_group.add_option("-N", "--runonce", dest="run_once",
+                action="store_true", default=False,
+                help="Only crawl the first page.")
         # TODO Add follow redirect option.
 
         parser.add_option_group(crawler_group)

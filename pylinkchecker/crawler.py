@@ -25,6 +25,8 @@ from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
 WORK_DONE = '__WORK_DONE__'
 
 
+
+
 class SiteCrawler(object):
     """Main crawler/orchestrator"""
 
@@ -56,6 +58,7 @@ class SiteCrawler(object):
             queue_size -= 1
             new_worker_inputs = self.process_page_crawl(page_crawl)
 
+            # We only process new pages if run_once is False (default)
             for worker_input in new_worker_inputs:
                 queue_size += 1
                 self.input_queue.put(worker_input, False)
@@ -67,7 +70,6 @@ class SiteCrawler(object):
                         self.output_queue)
                 self.stop_progress()
                 return self.site
-
 
     def start_progress(self):
         if self.config.options.progress:
@@ -427,7 +429,7 @@ class Site(UTF8Class):
                 self.page_statuses[url_split] = PageStatus(PAGE_QUEUED,
                         [page_source])
                 links_to_process.append(
-                        WorkerInput(url_split, self.config.is_local(url_split)))
+                        WorkerInput(url_split, self.config.should_crawl(url_split)))
             elif page_status.status == PAGE_CRAWLED:
                 # Already crawled. Add source
                 if url_split in self.pages:
