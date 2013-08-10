@@ -32,6 +32,21 @@ else:
     get_safe_str = lambda s: s
     from io import StringIO
 
+try:
+    from logging import NullHandler
+except ImportError:
+    from logging import Handler
+
+    class NullHandler(Handler):
+        def emit(self, record):
+            pass
+
+        def handle(self, record):
+            pass
+
+        def createLock(self):
+            return None
+
 
 def get_url_open():
     # Not automatically imported to allow monkey patching.

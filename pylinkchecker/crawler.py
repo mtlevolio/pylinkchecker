@@ -42,7 +42,7 @@ def get_logger(propagate=False):
         logger.addHandler(handler)
         logger.propagate = propagate
     else:
-        logger.addHandler(logging.NullHandler())
+        logger.addHandler(compat.NullHandler())
 
     return logger
 
