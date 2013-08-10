@@ -14,7 +14,7 @@ import pylinkchecker.compat as compat
 from pylinkchecker.compat import (SocketServer, SimpleHTTPServer, get_url_open,
         get_url_request)
 from pylinkchecker.crawler import (open_url, PageCrawler, WORK_DONE,
-        ThreadSiteCrawler, ProcessSiteCrawler, GreenSiteCrawler)
+        ThreadSiteCrawler, ProcessSiteCrawler)
 from pylinkchecker.models import (Config, WorkerInit, WorkerConfig, WorkerInput,
         PARSER_STDLIB)
 from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
