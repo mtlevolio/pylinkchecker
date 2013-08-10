@@ -234,7 +234,7 @@ class Config(UTF8Class):
         crawler_group.add_option("-P", "--progress", dest="progress",
                 action="store_true", default=False,
                 help="Prints crawler progress in the console")
-        crawler_group.add_option("-N", "--runonce", dest="run_once",
+        crawler_group.add_option("-N", "--run-once", dest="run_once",
                 action="store_true", default=False,
                 help="Only crawl the first page.")
         # TODO Add follow redirect option.
@@ -280,6 +280,9 @@ class Config(UTF8Class):
                 action="store_true", default=False,
                 help="Prints report to the console in addition to other output"
                 " options such as file or email.")
+        crawler_group.add_option("-S", "--show-source", dest="show_source",
+                action="store_true", default=False,
+                help="Show source of links (html) in the report.")
 
         parser.add_option_group(output_group)
 

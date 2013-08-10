@@ -296,7 +296,7 @@ class CrawlerTest(unittest.TestCase):
         self.assertEqual(1, len(site.error_pages))
 
     def test_run_once(self):
-        site = self._run_crawler_plain(ThreadSiteCrawler, ["--runonce"])
+        site = self._run_crawler_plain(ThreadSiteCrawler, ["--run-once"])
 
         # 8 pages linked on the index
         self.assertEqual(8, len(site.pages))

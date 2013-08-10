@@ -4,6 +4,7 @@ Contains the reporting functions
 from __future__ import unicode_literals, absolute_import, print_function
 
 import codecs
+import re
 import smtplib
 import sys
 
@@ -14,6 +15,8 @@ from pylinkchecker.models import (REPORT_TYPE_ERRORS, REPORT_TYPE_ALL,
 
 PLAIN_TEXT = "text/plain"
 HTML = "text/html"
+
+WHITESPACES = re.compile(r"\s+")
 
 
 EMAIL_HEADER = "from: {0}\r\nsubject: {1}\r\nto: {2}\r\nmime-version: 1.0\r\n"\
@@ -94,12 +97,27 @@ def _write_plain_text_report(site, config, output_files, total_time):
             for source in page.sources:
                 oprint("    from {0}".format(source.origin.geturl()),
                         files=output_files)
+                if config.options.show_source:
+                    oprint("      {0}".format(truncate(source.origin_str)),
+                            files=output_files)
 
 
 def oprint(message, files):
     """Prints to a sequence of files."""
     for file in files:
         print(message, file=file)
+
+
+def truncate(value, size=72):
+    """Truncates a string if its length is higher than size."""
+    value = value.replace("\n", " ").replace("\r", "").replace("\t", " ")
+    value = value.strip()
+    value = WHITESPACES.sub(" ", value)
+
+    if len(value) > size:
+        value = "{0}...".format(value[:size-3])
+
+    return value
 
 
 def send_email(email_file, site, config):
