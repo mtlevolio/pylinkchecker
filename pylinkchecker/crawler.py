@@ -5,6 +5,7 @@ Contains the crawling logic.
 from __future__ import unicode_literals, absolute_import
 
 import base64
+import logging
 import sys
 import time
 
@@ -16,7 +17,8 @@ from pylinkchecker.compat import (range, HTTPError, get_url_open, unicode,
 from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
         ExceptionStr, Link, SitePage, WorkerInput, TYPE_ATTRIBUTES, HTML_MIME_TYPE,
         MODE_THREAD, MODE_PROCESS, MODE_GREEN, WHEN_ALWAYS, UTF8Class,
-        PageStatus, PageSource, PAGE_QUEUED, PAGE_CRAWLED)
+        PageStatus, PageSource, PAGE_QUEUED, PAGE_CRAWLED, VERBOSE_QUIET,
+        VERBOSE_NORMAL)
 from pylinkchecker.reporter import report
 from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
         is_link, SUPPORTED_SCHEMES)
@@ -25,12 +27,41 @@ from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
 WORK_DONE = '__WORK_DONE__'
 
 
+def get_logger(propagate=False):
+    """Returns a logger."""
+    root_logger = logging.getLogger()
+
+    logger = logging.getLogger(__name__)
+
+    handler = logging.StreamHandler()
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+
+    if root_logger.level != logging.CRITICAL:
+        logger.addHandler(handler)
+        logger.propagate = propagate
+    else:
+        logger.addHandler(logging.NullHandler())
+
+    return logger
+
+
+class LazyLogParam(object):
+    """Lazy Log Parameter that is only evaluated if the logging statement
+       is printed"""
+
+    def __init__(self, func):
+        self.func=func
+
+    def __str__(self):
+        return str(self.func())
 
 
 class SiteCrawler(object):
     """Main crawler/orchestrator"""
 
-    def __init__(self, config):
+    def __init__(self, config, logger):
         self.config = config
         self.start_url_splits = []
         for start_url in config.start_urls:
@@ -38,11 +69,15 @@ class SiteCrawler(object):
         self.workers = []
         self.input_queue = self.build_queue(config)
         self.output_queue = self.build_queue(config)
-        self.site = Site(self.start_url_splits, config)
+        self.logger = logger
+        self.site = Site(self.start_url_splits, config, self.logger)
+
+    def build_logger(self):
+        return self.logger
 
     def crawl(self):
         worker_init = WorkerInit(self.config.worker_config,
-            self.input_queue, self.output_queue)
+            self.input_queue, self.output_queue, self.build_logger())
         self.workers = self.get_workers(self.config, worker_init)
 
         queue_size = len(self.start_url_splits)
@@ -150,6 +185,10 @@ class ProcessSiteCrawler(SiteCrawler):
         self.ProcessClass = multiprocessing.Process
         super(ProcessSiteCrawler, self).__init__(*args, **kwargs)
 
+    def build_logger(self):
+        """We do not want to share a logger."""
+        return None
+
     def build_queue(self, config):
         return self.manager.Queue()
 
@@ -203,6 +242,10 @@ class PageCrawler(object):
         self.output_queue = worker_init.output_queue
         self.urlopen = get_url_open()
         self.request_class = get_url_request()
+        self.logger = worker_init.logger
+        if not self.logger:
+            # Get a new one!
+            self.logger = get_logger()
 
         # We do this here to allow patching by gevent
         import socket
@@ -274,6 +317,10 @@ class PageCrawler(object):
                     html_soup = BeautifulSoup(response.content,
                             self.worker_config.parser)
                     links = self.get_links(html_soup, final_url_split)
+                else:
+                    self.logger.debug("Won't crawl %s. MIME Type: %s. Should crawl: %s",
+                            final_url_split, mime_type,
+                            worker_input.should_crawl)
 
                 page_crawl = PageCrawl(original_url_split=url_split_to_crawl,
                     final_url_split=final_url_split, status=response.status,
@@ -285,6 +332,7 @@ class PageCrawler(object):
                     final_url_split=None, status=None,
                     is_timeout=False, is_redirect=False, links=[],
                     exception=exception, is_html=False)
+            self.logger.exception("Exception occurred while crawling a page.")
 
         return page_crawl
 
@@ -345,7 +393,7 @@ class Site(UTF8Class):
     a time!
     """
 
-    def __init__(self, start_url_splits, config):
+    def __init__(self, start_url_splits, config, logger=None):
         self.start_url_splits = start_url_splits
 
         self.pages = {}
@@ -359,6 +407,8 @@ class Site(UTF8Class):
 
         self.config = config
 
+        self.logger = logger
+
         for start_url_split in self.start_url_splits:
             self.page_statuses[start_url_split] = PageStatus(PAGE_QUEUED, [])
 
@@ -370,8 +420,7 @@ class Site(UTF8Class):
     def add_crawled_page(self, page_crawl):
         """Adds a crawled page. Returns a list of url split to crawl"""
         if not page_crawl.original_url_split in self.page_statuses:
-            # There is a problem! Should not happen.
-            # TODO LOG!
+            self.logger.warning("Original URL not seen before!")
             return []
 
         status = self.page_statuses[page_crawl.original_url_split]
@@ -381,8 +430,7 @@ class Site(UTF8Class):
                 PAGE_CRAWLED, None)
 
         if page_crawl.original_url_split in self.pages:
-            # There is a problem! Should not happen
-            # TODO LOG!
+            self.logger.warning("Original URL already crawled! Concurrency issue!")
             return []
 
         final_url_split = page_crawl.final_url_split
@@ -419,6 +467,9 @@ class Site(UTF8Class):
         for link in page_crawl.links:
             url_split = link.url_split
             if not self.config.should_download(url_split):
+                self.logger.debug("Won't download %s. Is local? %s",
+                        url_split,
+                        LazyLogParam(lambda : self.config.is_local(url_split)))
                 continue
 
             page_status = self.page_statuses.get(url_split, None)
@@ -505,12 +556,21 @@ def execute_from_command_line():
         print("At least one starting URL must be supplied.")
         sys.exit(1)
 
+    if config.options.verbose == VERBOSE_QUIET:
+        logging.basicConfig(level=logging.CRITICAL)
+    elif config.options.verbose == VERBOSE_NORMAL:
+        logging.basicConfig(level=logging.WARNING)
+    else:
+        logging.basicConfig(level=logging.DEBUG)
+
+    logger = get_logger()
+
     if config.options.mode == MODE_THREAD:
-        crawler = ThreadSiteCrawler(config)
+        crawler = ThreadSiteCrawler(config, logger)
     elif config.options.mode == MODE_PROCESS:
-        crawler = ProcessSiteCrawler(config)
+        crawler = ProcessSiteCrawler(config, logger)
     elif config.options.mode == MODE_GREEN:
-        crawler = GreenSiteCrawler(config)
+        crawler = GreenSiteCrawler(config, logger)
 
     if not crawler:
         print("Invalid crawling mode supplied.")
@@ -521,7 +581,7 @@ def execute_from_command_line():
     stop = time.time()
 
     if not crawler.site.is_ok or config.options.when == WHEN_ALWAYS:
-        report(crawler.site, config, stop - start)
+        report(crawler.site, config, stop - start, logger)
 
     if not crawler.site.is_ok:
         sys.exit(1)

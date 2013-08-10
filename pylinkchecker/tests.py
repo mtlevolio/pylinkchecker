@@ -5,6 +5,7 @@ Unit and integration tests for pylinkchecker
 from __future__ import unicode_literals, absolute_import
 
 import os
+import logging
 import sys
 import time
 import threading
@@ -14,7 +15,7 @@ import pylinkchecker.compat as compat
 from pylinkchecker.compat import (SocketServer, SimpleHTTPServer, get_url_open,
         get_url_request)
 from pylinkchecker.crawler import (open_url, PageCrawler, WORK_DONE,
-        ThreadSiteCrawler, ProcessSiteCrawler)
+        ThreadSiteCrawler, ProcessSiteCrawler, get_logger)
 from pylinkchecker.models import (Config, WorkerInit, WorkerConfig, WorkerInput,
         PARSER_STDLIB)
 from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
@@ -22,6 +23,9 @@ from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
 
 TEST_FILES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         'testfiles')
+
+# Quiet all logging
+logging.basicConfig(level=logging.CRITICAL)
 
 
 ### UTILITY CLASSES AND FUNCTIONS ###
@@ -136,6 +140,7 @@ class CrawlerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         (cls.ip, cls.port, cls.httpd, cls.httpd_thread) = start_http_server()
+
         # FIXME replace by thread synchronization on start
         time.sleep(0.2)
 
@@ -155,6 +160,10 @@ class CrawlerTest(unittest.TestCase):
             time.sleep(0.2)
         self.argv = sys.argv
 
+        # Need to override root logger level (reset by something)
+        logger = logging.getLogger()
+        logger.setLevel(logging.CRITICAL)
+
     def tearDown(self):
         sys.argv = self.argv
 
@@ -171,7 +180,8 @@ class CrawlerTest(unittest.TestCase):
                 'img', 'link', 'script'], timeout=5, parser=PARSER_STDLIB)
 
         worker_init = WorkerInit(worker_config=worker_config,
-                input_queue=input_queue, output_queue=output_queue)
+                input_queue=input_queue, output_queue=output_queue,
+                logger=get_logger())
 
         page_crawler = PageCrawler(worker_init)
 
@@ -278,7 +288,7 @@ class CrawlerTest(unittest.TestCase):
         config = Config()
         config.parse_config()
 
-        crawler = crawler_class(config)
+        crawler = crawler_class(config, get_logger())
         crawler.crawl()
 
         return crawler.site

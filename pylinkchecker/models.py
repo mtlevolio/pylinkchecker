@@ -74,7 +74,7 @@ PAGE_CRAWLED = '__PAGE_CRAWLED__'
 # immutable and easy to pickle (as opposed to a class).
 
 WorkerInit = namedtuple("WorkerInit", ["worker_config", "input_queue",
-        "output_queue"])
+        "output_queue", "logger"])
 
 
 WorkerConfig = namedtuple("WorkerConfig", ["username", "password", "types",
@@ -200,7 +200,7 @@ class Config(UTF8Class):
                 version="%prog {0}".format(version))
 
         parser.add_option("-V", "--verbose", dest="verbose", action="store",
-                default=VERBOSE_NORMAL, choices=[VERBOSE_QUIET, VERBOSE_NORMAL,
+                default=VERBOSE_QUIET, choices=[VERBOSE_QUIET, VERBOSE_NORMAL,
                 VERBOSE_INFO])
 
         crawler_group = OptionGroup(parser, "Crawler Options",

@@ -32,7 +32,7 @@ def close_quietly(a_file):
         pass
 
 
-def report(site, config, total_time):
+def report(site, config, total_time, logger=None):
     """Prints reports to console, file, and email."""
     output_files = []
     output_file = None
@@ -53,8 +53,8 @@ def report(site, config, total_time):
         if config.options.format == FORMAT_PLAIN:
             _write_plain_text_report(site, config, output_files, total_time)
     except Exception:
-        # TODO Log exception
-        pass
+        if logger:
+            logger.exception("An exception occurred while writing the report")
 
     if output_file:
         close_quietly(output_file)
