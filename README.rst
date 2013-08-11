@@ -1,7 +1,7 @@
 pylinkchecker
 =============
 
-:Version: 0.1
+:Version: 0.2pre
 
 pylinkchecker is a standalone and pure python link checker and crawler that
 traverses a web site and reports errors (e.g., 500 and 404 errors) encountered.
@@ -16,9 +16,27 @@ access to a compiler (e.g., Microsoft Windows, some *nix production
 environments) or with an old version of python (e.g., Centos).
 
 pylinkchecker is highly modular and has many configuration options, but the
-only required parameter is the starting url.
+only required parameter is the starting url: pylinkcheck.py
+http://www.example.com/
 
 .. image:: https://api.travis-ci.org/auto123/pylinkchecker.png
+
+
+Quick Start
+-----------
+
+Install pylinkchecker with pip or easy_install:
+
+::
+
+  pip install pylinkchecker
+
+
+Crawl all pages from a site and show progress:
+
+::
+
+  pylinkcheck.py -P http://www.example.com/
 
 
 Requirements
@@ -47,16 +65,11 @@ cchardet
   this library speeds up the detection of document encoding.
 
 
-Installation
-------------
-
-::
-
-  pip install pylinkchecker
-
-
 Usage
 -----
+
+This is a list of all available options. See the end of the README file for
+usage examples.
 
 ::
 
@@ -90,6 +103,8 @@ Usage
                           Seconds to wait before considering that a page timed
                           out
       -P, --progress      Prints crawler progress in the console
+      -N, --run-once      Only crawl the first page.
+      -S, --show-source   Show source of links (html) in the report.
 
     Performance Options:
       These options can impact the performance of the crawler.
@@ -109,12 +124,11 @@ Usage
       -o OUTPUT, --output=OUTPUT
                           Path of the file where the report will be printed.
       -W WHEN, --when=WHEN
-                          When to print the report. error (default, only if a
-                          crawling error occurs) or always
+                          When to print the report. error (only if a
+                          crawling error occurs) or always (default)
       -E REPORT_TYPE, --report-type=REPORT_TYPE
                           Type of report to print: errors (default, summary and
-                          erroneous links), summary, all (summary and all
-                          links)
+                          erroneous links), summary, all (summary and all links)
       -c, --console       Prints report to the console in addition to other
                           output options such as file or email.
 
@@ -136,6 +150,42 @@ Usage
                           Username to use with the smtp server (optional)
       --smtp-password=SMTP_PASSWORD
                           Password to use with the smtp server (optional)
+
+Usage Example
+-------------
+
+Crawl a site and show progress
+  ``pylinkcheck.py --progress http://example.com/``
+
+Crawl a site starting from 2 URLs
+  ``pylinkcheck.py http://example.com/ http://example2.com/``
+
+Crawl a site (example.com) and all pages belonging to another host
+  ``pylinkcheck.py -H additionalhost.com http://example.com/``
+
+Report status of all links (even successful ones)
+  ``pylinkcheck.py --report-type=all http://example.com/``
+
+Report status of all links and HTML show source of these links
+  ``pylinkcheck.py --report-type=all --show-source http://example.com/``
+
+Only crawl starting URLs and access all linked resources
+  ``pylinkcheck.py --run-once http://example.com/``
+
+Only access links (a href) and ignore images, stylesheets and scripts
+  ``pylinkcheck.py --types=a http://example.com/``
+
+Crawl a site with 4 threads (default is one thread)
+  ``pylinkcheck.py --workers=4 http://example.com/``
+
+Crawl a site with 4 processes (default is one thread)
+  ``pylinkcheck.py --mode=process --workers=4 http://example.com/``
+
+Crawl a site and use LXML to parse HTML (faster, must be installed)
+  ``pylinkcheck.py --parser=LXML http://example.com/``
+
+Print debugging info
+  ``pylinkcheck.py --verbose=2 http://example.com/``
 
 
 License

@@ -281,8 +281,8 @@ class Config(UTF8Class):
                 help="Path of the file where the report will be printed.")
         output_group.add_option("-W", "--when", dest="when", action="store",
                 default=WHEN_ALWAYS, choices=[WHEN_ALWAYS, WHEN_ON_ERROR],
-                help="When to print the report. error (default, only if a "
-                "crawling error occurs) or always")
+                help="When to print the report. error (only if a "
+                "crawling error occurs) or always (default)")
         output_group.add_option("-E", "--report-type", dest="report_type",
                 action="store", default=REPORT_TYPE_ERRORS, choices=[
                 REPORT_TYPE_ERRORS, REPORT_TYPE_SUMMARY, REPORT_TYPE_ALL],
