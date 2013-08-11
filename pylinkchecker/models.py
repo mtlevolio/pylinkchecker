@@ -104,6 +104,7 @@ PageStatus = namedtuple("PageStatus", ["status", "sources"])
 
 PageSource = namedtuple("PageSource", ["origin", "origin_str"])
 
+
 class UTF8Class(object):
     """Handles unicode string from __unicode__() in: __str__() and __repr__()
     """
@@ -112,6 +113,17 @@ class UTF8Class(object):
 
     def __repr__(self):
         return get_safe_str(self.__unicode__())
+
+
+class LazyLogParam(object):
+    """Lazy Log Parameter that is only evaluated if the logging statement
+       is printed"""
+
+    def __init__(self, func):
+        self.func=func
+
+    def __str__(self):
+        return str(self.func())
 
 
 class Config(UTF8Class):

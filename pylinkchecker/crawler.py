@@ -18,7 +18,7 @@ from pylinkchecker.models import (Config, WorkerInit, Response, PageCrawl,
         ExceptionStr, Link, SitePage, WorkerInput, TYPE_ATTRIBUTES, HTML_MIME_TYPE,
         MODE_THREAD, MODE_PROCESS, MODE_GREEN, WHEN_ALWAYS, UTF8Class,
         PageStatus, PageSource, PAGE_QUEUED, PAGE_CRAWLED, VERBOSE_QUIET,
-        VERBOSE_NORMAL)
+        VERBOSE_NORMAL, LazyLogParam)
 from pylinkchecker.reporter import report
 from pylinkchecker.urlutil import (get_clean_url_split, get_absolute_url_split,
         is_link, SUPPORTED_SCHEMES)
@@ -45,17 +45,6 @@ def get_logger(propagate=False):
         logger.addHandler(compat.NullHandler())
 
     return logger
-
-
-class LazyLogParam(object):
-    """Lazy Log Parameter that is only evaluated if the logging statement
-       is printed"""
-
-    def __init__(self, func):
-        self.func=func
-
-    def __str__(self):
-        return str(self.func())
 
 
 class SiteCrawler(object):
