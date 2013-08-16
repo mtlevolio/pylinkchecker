@@ -43,6 +43,11 @@ DEFAULT_WORKERS = {
 
 PARSER_STDLIB = "html.parser"
 PARSER_LXML = "lxml"
+PARSER_HTML5 = "html5lib"
+
+# TODO Add support for gumbo. Will require some refactoring of the parsing
+# logic.
+# PARSER_GUMBO = "gumbo"
 
 
 FORMAT_PLAIN = "plain"
@@ -265,8 +270,9 @@ class Config(UTF8Class):
                 MODE_GREEN],
                 help="Types of workers: thread (default), process, or green")
         perf_group.add_option("-R", "--parser", dest="parser", action="store",
-                default=PARSER_STDLIB, choices=[PARSER_STDLIB, PARSER_LXML],
-                help="Types of HTML parse: html.parser (default) or lxml")
+                default=PARSER_STDLIB, choices=[PARSER_STDLIB, PARSER_LXML,
+                PARSER_HTML5],
+                help="Types of HTML parse: html.parser (default), lxml, html5lib")
 
         parser.add_option_group(perf_group)
 
