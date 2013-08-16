@@ -46,6 +46,9 @@ pylinkchecker does not require external libraries if executed with python 2.x.
 It requires beautifulsoup4 if executed with python 3.x. It has been tested on
 python 2.6, python 2.7, and python 3.3.
 
+For production use, it is strongly recommended to use lxml or html5lib because
+the default HTML parser provided by python is not very lenient.
+
 
 Optional Requirements
 ---------------------
@@ -55,6 +58,10 @@ These libraries can be installed to enable certain modes in pylinkchecker:
 lxml
   beautifulsoup can use lxml to speed up the parsing of HTML pages. Because
   lxml requires C libraries, this is only an optional requirement.
+
+html5lib
+  beautifulsoup can use html5lib to process incorrect or strange markup. It is
+  slower than lxml, but believed to be more lenient.
 
 gevent
   this non-blocking io library enables pylinkchecker to use green threads
