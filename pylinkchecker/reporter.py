@@ -8,6 +8,8 @@ import re
 import smtplib
 import sys
 
+from email.mime.text import MIMEText
+
 from pylinkchecker.compat import StringIO
 from pylinkchecker.models import (REPORT_TYPE_ERRORS, REPORT_TYPE_ALL,
         FORMAT_PLAIN)
@@ -141,8 +143,11 @@ def send_email(email_file, site, config):
 
     addresses = options.address.split(",")
 
-    msg = EMAIL_HEADER.format(from_address, subject, ", ".join(addresses),
-            PLAIN_TEXT, email_file.getvalue())
+    msg = MIMEText(email_file.getvalue(), 'plain', "UTF-8")
+
+    msg['From'] = from_address
+    msg['To'] = ", ".join(addresses)
+    msg['Subject'] = subject
 
     smtpserver = smtplib.SMTP(options.smtp, options.port)
 
@@ -154,6 +159,6 @@ def send_email(email_file, site, config):
     if options.smtp_username and options.smtp_password:
         smtpserver.login(options.smtp_username, options.smtp_password)
 
-    smtpserver.sendmail(from_address, addresses, msg)
+    smtpserver.sendmail(from_address, addresses, msg.as_string())
 
     smtpserver.quit()

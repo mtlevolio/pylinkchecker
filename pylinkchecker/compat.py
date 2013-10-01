@@ -16,10 +16,7 @@ if sys.version_info[0] < 3:
     unicode = unicode
     get_content_type = lambda m: m.gettype()
     get_safe_str = lambda s: s.encode("utf-8")
-    try:
-        from cStringIO import StringIO
-    except ImportError:
-        from StringIO import StringIO
+    from StringIO import StringIO
 else:
     range = range
     import urllib.parse as urlparse
