@@ -218,7 +218,8 @@ class CrawlerTest(unittest.TestCase):
 
     def test_crawl_page(self):
         page_crawler, url_split = self.get_page_crawler("/index.html")
-        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True))
+        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True,
+                url_split.netloc))
 
         self.assertEqual(200, page_crawl.status)
         self.assertTrue(page_crawl.is_html)
@@ -238,7 +239,8 @@ class CrawlerTest(unittest.TestCase):
 
     def test_crawl_resource(self):
         page_crawler, url_split = self.get_page_crawler("/sub/small_image.gif")
-        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True))
+        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True,
+                url_split.netloc))
 
         self.assertEqual(200, page_crawl.status)
         self.assertFalse(page_crawl.links)
@@ -249,7 +251,8 @@ class CrawlerTest(unittest.TestCase):
 
     def test_base_url(self):
         page_crawler, url_split = self.get_page_crawler("/alone.html")
-        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True))
+        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True,
+                url_split.netloc))
 
         self.assertEqual(1, len(page_crawl.links))
         self.assertEqual('http://www.example.com/test.html',
@@ -257,7 +260,8 @@ class CrawlerTest(unittest.TestCase):
 
     def test_crawl_404(self):
         page_crawler, url_split = self.get_page_crawler("/sub/small_image_bad.gif")
-        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True))
+        page_crawl = page_crawler._crawl_page(WorkerInput(url_split, True,
+                url_split.netloc))
 
         self.assertEqual(404, page_crawl.status)
         self.assertFalse(page_crawl.links)
@@ -270,7 +274,7 @@ class CrawlerTest(unittest.TestCase):
         input_queue = page_crawler.input_queue
         output_queue = page_crawler.output_queue
 
-        input_queue.put(WorkerInput(url_split, True))
+        input_queue.put(WorkerInput(url_split, True, url_split.netloc))
         input_queue.put(WORK_DONE)
         page_crawler.crawl_page_forever()
 

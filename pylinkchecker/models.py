@@ -86,7 +86,8 @@ WorkerConfig = namedtuple("WorkerConfig", ["username", "password", "types",
         "timeout", "parser"])
 
 
-WorkerInput = namedtuple("WorkerInput", ["url_split", "should_crawl"])
+WorkerInput = namedtuple("WorkerInput", ["url_split", "should_crawl",
+        "site_origin"])
 
 
 Response = namedtuple("Response", ["content", "status", "exception",
@@ -101,7 +102,8 @@ Link = namedtuple("Link", ["type", "url_split", "original_url_split",
 
 
 PageCrawl = namedtuple("PageCrawl", ["original_url_split", "final_url_split",
-        "status", "is_timeout", "is_redirect", "links", "exception", "is_html"])
+        "status", "is_timeout", "is_redirect", "links", "exception", "is_html",
+        "site_origin"])
 
 
 PageStatus = namedtuple("PageStatus", ["status", "sources"])
@@ -141,7 +143,11 @@ class Config(UTF8Class):
         self.options = None
         self.start_urls = []
         self.worker_config = None
+
         self.accepted_hosts = []
+        """Set of accepted hosts. Dictionary of accepted hosts if in multi
+        mode: key: start url host, value: set of accepted hosts."""
+
         self.ignored_prefixes = []
         self.worker_size = 0
 
@@ -195,11 +201,34 @@ class Config(UTF8Class):
                 options.timeout, options.parser)
 
     def _build_accepted_hosts(self, options, start_urls):
+        if options.multi:
+            return self._build_multi_hosts(options, start_urls)
+        else:
+            return self._build_single_hosts(options, start_urls)
+
+    def _build_multi_hosts(self, options, start_urls):
+        hosts = {}
+
+        extra_hosts = set()
+        if options.accepted_hosts:
+            for url in options.accepted_hosts.split(','):
+                split_result = get_clean_url_split(url)
+                extra_hosts.add(split_result.netloc)
+
+
+        for start_url in start_urls:
+            split_result = get_clean_url_split(url)
+            host = split_result.netloc
+            hosts[host] = extra_hosts.union(host)
+
+        return hosts
+
+    def _build_single_hosts(self, options, start_urls):
         hosts = set()
         urls = []
 
-        if self.options.accepted_hosts:
-            urls = self.options.accepted_hosts.split(',')
+        if options.accepted_hosts:
+            urls = options.accepted_hosts.split(',')
         urls = urls + start_urls
 
         for url in urls:
@@ -239,8 +268,9 @@ class Config(UTF8Class):
         crawler_group.add_option("-p", "--password", dest="password",
                 action="store", default=None,
                 help="password to use with basic HTTP authentication")
-        # crawler_group.add_option("-U", "--unique", dest="unique",
-        #         action="store_true", default=False)
+        crawler_group.add_option("-M", "--multi", dest="multi",
+                action="store_true", default=False,
+                help="each argument is considered to be a different site")
         crawler_group.add_option("-t", "--types", dest="types", action="store",
                 default=",".join(DEFAULT_TYPES),
                 help="Comma-separated values of tags to look for when crawling"
