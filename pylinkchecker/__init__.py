@@ -3,4 +3,4 @@
 Main pylinkchecker package
 """
 
-__version__ = "0.2pre"
+__version__ = "0.2"
