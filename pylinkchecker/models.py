@@ -155,9 +155,16 @@ class Config(UTF8Class):
         """Returns True if url split is local AND run_once is False"""
         return not self.options.run_once and self.is_local(url_split)
 
-    def is_local(self, url_split):
-        """Returns true if url split is in the accepted hosts"""
-        return url_split.netloc in self.accepted_hosts
+    def is_local(self, url_split, site_origin=None):
+        """Returns true if url split is in the accepted hosts. site_origin must
+        be provided if multi sites mode is enabled."""
+
+        if self.options.multi and site_origin:
+            accepted_hosts = self.accepted_hosts[site_origin]
+        else:
+            accepted_hosts = self.accepted_hosts
+
+        return url_split.netloc in accepted_hosts
 
     def should_download(self, url_split):
         """Returns True if the url does not start with an ignored prefix and if
@@ -217,7 +224,7 @@ class Config(UTF8Class):
 
 
         for start_url in start_urls:
-            split_result = get_clean_url_split(url)
+            split_result = get_clean_url_split(start_url)
             host = split_result.netloc
             hosts[host] = extra_hosts.union(host)
 
@@ -381,7 +388,7 @@ class SitePage(UTF8Class):
     """
 
     def __init__(self, url_split, status=200, is_timeout=False, exception=None,
-            is_html=True, is_local=True):
+            is_html=True, is_local=True, site_origin=None):
         self.url_split = url_split
 
         self.original_source = None
@@ -394,6 +401,7 @@ class SitePage(UTF8Class):
         self.is_html = is_html
         self.is_local = is_local
         self.is_ok = status and status < 400
+        self.site_origin = site_origin
 
     def add_sources(self, page_sources):
         self.sources.extend(page_sources)

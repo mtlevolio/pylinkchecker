@@ -5,6 +5,7 @@ Contains the crawling logic.
 from __future__ import unicode_literals, absolute_import
 
 import base64
+from collections import defaultdict
 import logging
 import sys
 import time
@@ -394,8 +395,14 @@ class Site(UTF8Class):
         self.pages = {}
         """Map of url:SitePage"""
 
+        self.multi_pages = defaultdict(dict)
+        """Map of netloc:map(url:SitePage). Only used in multi sites mode."""
+
         self.error_pages = {}
         """Map of url:SitePage with is_ok=False"""
+
+        self.multi_error_pages = defaultdict(dict)
+        """Map of netloc:map(url:SitePage). Only used in multi sites mode."""
 
         self.page_statuses = {}
         """Map of url:PageStatus (PAGE_QUEUED, PAGE_CRAWLED)"""
@@ -406,6 +413,13 @@ class Site(UTF8Class):
 
         for start_url_split in self.start_url_splits:
             self.page_statuses[start_url_split] = PageStatus(PAGE_QUEUED, [])
+
+    def process_multi_sites(self):
+        for url, page in self.pages.items():
+            self.multi_pages[page.site_origin][url] = page
+
+        for url, page in self.error_pages.items():
+            self.multi_error_pages[page.site_origin][url] = page
 
     @property
     def is_ok(self):
@@ -443,7 +457,7 @@ class Site(UTF8Class):
             is_local = self.config.is_local(final_url_split)
             site_page = SitePage(final_url_split, page_crawl.status,
                     page_crawl.is_timeout, page_crawl.exception,
-                    page_crawl.is_html, is_local)
+                    page_crawl.is_html, is_local, page_crawl.site_origin)
             site_page.add_sources(status.sources)
             self.pages[final_url_split] = site_page
 
@@ -576,6 +590,9 @@ def execute_from_command_line():
     crawler.crawl()
 
     stop = time.time()
+
+    if config.options.multi:
+        crawler.site.process_multi_sites()
 
     if not crawler.site.is_ok or config.options.when == WHEN_ALWAYS:
         report(crawler.site, config, stop - start, logger)

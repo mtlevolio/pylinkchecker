@@ -57,6 +57,8 @@ def report(site, config, total_time, logger=None):
     except Exception:
         if logger:
             logger.exception("An exception occurred while writing the report")
+        from traceback import print_exc
+        print_exc()
 
     if output_file:
         close_quietly(output_file)
@@ -66,6 +68,50 @@ def report(site, config, total_time, logger=None):
 
 
 def _write_plain_text_report(site, config, output_files, total_time):
+    if config.options.multi:
+        _write_plain_text_report_multi(site, config, output_files, total_time)
+    else:
+        _write_plain_text_report_single(site, config, output_files, total_time)
+
+
+def _write_plain_text_report_multi(site, config, output_files, total_time):
+    total_urls = len(site.pages)
+    total_errors = len(site.error_pages)
+
+    if not site.is_ok:
+        global_status = "ERROR"
+        error_summary = "with {0} error(s) ".format(total_errors)
+    else:
+        global_status = "SUCCESS"
+        error_summary = ""
+
+    oprint("{0} Crawled {1} urls {2}from {4} sites in {3:.2f} seconds".format(
+            global_status, total_urls, error_summary, total_time,
+            len(site.start_url_splits)), files=output_files)
+
+    pages = {}
+
+    if config.options.report_type == REPORT_TYPE_ERRORS:
+        pages = site.multi_error_pages
+    elif config.options.report_type == REPORT_TYPE_ALL:
+        pages = site.multi_pages
+
+    for domain, pages_dict in pages.items():
+        if pages_dict:
+            oprint("\n\n  Start Domain: {0}".format(domain), files=output_files)
+
+            for page in pages_dict.values():
+                oprint("\n    {0}: {1}".format(page.get_status_message(),
+                        page.url_split.geturl()), files=output_files)
+                for source in page.sources:
+                    oprint("      from {0}".format(source.origin.geturl()),
+                            files=output_files)
+                    if config.options.show_source:
+                        oprint("        {0}".format(truncate(source.origin_str)),
+                                files=output_files)
+
+
+def _write_plain_text_report_single(site, config, output_files, total_time):
     start_urls = ",".join((start_url_split.geturl() for start_url_split in
         site.start_url_splits))
 
