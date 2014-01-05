@@ -541,7 +541,7 @@ def execute_from_command_line():
     try:
         start = time.time()
         config = Config()
-        config.parse_config()
+        config.parse_cli_config()
 
         logger = configure_logger(config)
         crawler = execute_from_config(config)
