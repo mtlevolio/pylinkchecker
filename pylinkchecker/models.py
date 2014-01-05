@@ -169,7 +169,7 @@ class Config(UTF8Class):
 
         return True
 
-    def parse_config(self):
+    def parse_cli_config(self):
         """Builds the options and args based on the command line options."""
         (self.options, self.start_urls) = self.parser.parse_args()
         self._parse_config()

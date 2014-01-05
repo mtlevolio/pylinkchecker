@@ -88,14 +88,14 @@ class ConfigTest(unittest.TestCase):
     def test_accepted_hosts(self):
         sys.argv = ['pylinkchecker', 'http://www.example.com/']
         config = Config()
-        config.parse_config()
+        config.parse_cli_config()
         self.assertTrue('www.example.com' in config.accepted_hosts)
 
         sys.argv = ['pylinkchecker', '-H', 'www.example.com',
                 'http://example.com', 'foo.com', 'http://www.example.com/',
                 'baz.com']
         config = Config()
-        config.parse_config()
+        config.parse_cli_config()
 
         self.assertTrue('www.example.com' in config.accepted_hosts)
         self.assertTrue('example.com' in config.accepted_hosts)
@@ -287,7 +287,7 @@ class CrawlerTest(unittest.TestCase):
             other_options = []
         sys.argv.extend(other_options)
         config = Config()
-        config.parse_config()
+        config.parse_cli_config()
 
         crawler = crawler_class(config, get_logger())
         crawler.crawl()
