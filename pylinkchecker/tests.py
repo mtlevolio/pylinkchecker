@@ -325,3 +325,10 @@ class CrawlerTest(unittest.TestCase):
         site = api.crawl(url)
         self.assertEqual(11, len(site.pages))
         self.assertEqual(1, len(site.error_pages))
+
+    def test_api_with_options(self):
+        url = self.get_url("/index.html")
+
+        site = api.crawl_with_options([url], {"run-once": True, "workers": 2})
+        self.assertEqual(8, len(site.pages))
+        self.assertEqual(0, len(site.error_pages))

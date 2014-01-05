@@ -177,8 +177,20 @@ class Config(UTF8Class):
     def parse_api_config(self, start_urls, options_dict=None):
         """Builds the options and args based on passed parameters."""
         # TODO Add options
-        (self.options, self.start_urls) = self.parser.parse_args(start_urls)
+        options = self._get_options(options_dict)
+        (self.options, self.start_urls) = self.parser.parse_args(options + start_urls)
         self._parse_config()
+
+    def _get_options(self, options_dict):
+        if not options_dict:
+            options_dict = {}
+        options = []
+        for key, value in options_dict.items():
+            if isinstance(value, bool) and value:
+                options.append("--{0}".format(key))
+            else:
+                options.append("--{0}={1}".format(key, value))
+        return options
 
     def _parse_config(self):
         self.worker_config = self._build_worker_config(self.options)
