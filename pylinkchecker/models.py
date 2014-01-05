@@ -170,8 +170,17 @@ class Config(UTF8Class):
         return True
 
     def parse_config(self):
-        """Build the options and args based on the command line options."""
+        """Builds the options and args based on the command line options."""
         (self.options, self.start_urls) = self.parser.parse_args()
+        self._parse_config()
+
+    def parse_api_config(self, start_urls, options_dict=None):
+        """Builds the options and args based on passed parameters."""
+        # TODO Add options
+        (self.options, self.start_urls) = self.parser.parse_args(start_urls)
+        self._parse_config()
+
+    def _parse_config(self):
         self.worker_config = self._build_worker_config(self.options)
         self.accepted_hosts = self._build_accepted_hosts(self.options,
                 self.start_urls)

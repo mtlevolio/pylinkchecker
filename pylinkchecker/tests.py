@@ -11,6 +11,7 @@ import time
 import threading
 import unittest
 
+from pylinkchecker import api
 import pylinkchecker.compat as compat
 from pylinkchecker.compat import (SocketServer, SimpleHTTPServer, get_url_open,
         get_url_request)
@@ -317,3 +318,10 @@ class CrawlerTest(unittest.TestCase):
             return
         # TODO test gevent. Cannot use threaded simple http server :-(
         self.assertTrue(True)
+
+    def test_api(self):
+        url = self.get_url("/index.html")
+
+        site = api.crawl(url)
+        self.assertEqual(11, len(site.pages))
+        self.assertEqual(1, len(site.error_pages))
