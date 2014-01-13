@@ -414,7 +414,7 @@ class Site(UTF8Class):
         for start_url_split in self.start_url_splits:
             self.page_statuses[start_url_split] = PageStatus(PAGE_QUEUED, [])
 
-    def process_multi_sites(self):
+    def collect_multi_sites(self):
         for url, page in self.pages.items():
             self.multi_pages[page.site_origin][url] = page
 
@@ -592,7 +592,7 @@ def execute_from_command_line():
     stop = time.time()
 
     if config.options.multi:
-        crawler.site.process_multi_sites()
+        crawler.site.collect_multi_sites()
 
     if not crawler.site.is_ok or config.options.when == WHEN_ALWAYS:
         report(crawler.site, config, stop - start, logger)
