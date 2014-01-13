@@ -112,6 +112,8 @@ usage examples.
       -T TIMEOUT, --timeout=TIMEOUT
                           Seconds to wait before considering that a page timed
                           out
+      -C, --strict        Does not strip href and src attributes from
+                          whitespaces
       -P, --progress      Prints crawler progress in the console
       -N, --run-once      Only crawl the first page.
       -S, --show-source   Show source of links (html) in the report.
