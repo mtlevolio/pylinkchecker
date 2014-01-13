@@ -19,6 +19,9 @@ pylinkchecker is highly modular and has many configuration options, but the
 only required parameter is the starting url: pylinkcheck.py
 http://www.example.com/
 
+pylinkchecker can also be used programmatically by calling one of the functions
+in ``pylinkchecker.api``
+
 .. image:: https://api.travis-ci.org/auto123/pylinkchecker.png
 
 
@@ -193,6 +196,32 @@ Crawl a site and use LXML to parse HTML (faster, must be installed)
 
 Print debugging info
   ``pylinkcheck.py --verbose=2 http://example.com/``
+
+
+API Usage
+---------
+
+To crawl a site from a single URL:
+
+.. code-block:: python
+
+  from pylinkchecker.api import crawl
+  crawled_site = crawl("http://www.example.com/")
+  number_of_crawled_pages = len(crawled_site.pages)
+  number_of_errors = len(crawled_sites.error_pages)
+
+
+To crawl a site and pass some configuration options (the same supported by the
+command line interface):
+
+
+.. code-block:: python
+
+  from pylinkchecker.api import crawl_with_options
+  crawled_site = crawl_with_options(["http://www.example.com/"], {"run-once":
+      True, "workers": 10})
+  number_of_crawled_pages = len(crawled_site.pages)
+  number_of_errors = len(crawled_sites.error_pages)
 
 
 FAQ and Troubleshooting

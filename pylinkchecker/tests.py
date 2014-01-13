@@ -11,6 +11,7 @@ import time
 import threading
 import unittest
 
+from pylinkchecker import api
 import pylinkchecker.compat as compat
 from pylinkchecker.compat import (SocketServer, SimpleHTTPServer, get_url_open,
         get_url_request)
@@ -87,14 +88,14 @@ class ConfigTest(unittest.TestCase):
     def test_accepted_hosts(self):
         sys.argv = ['pylinkchecker', 'http://www.example.com/']
         config = Config()
-        config.parse_config()
+        config.parse_cli_config()
         self.assertTrue('www.example.com' in config.accepted_hosts)
 
         sys.argv = ['pylinkchecker', '-H', 'www.example.com',
                 'http://example.com', 'foo.com', 'http://www.example.com/',
                 'baz.com']
         config = Config()
-        config.parse_config()
+        config.parse_cli_config()
 
         self.assertTrue('www.example.com' in config.accepted_hosts)
         self.assertTrue('example.com' in config.accepted_hosts)
@@ -290,7 +291,7 @@ class CrawlerTest(unittest.TestCase):
             other_options = []
         sys.argv.extend(other_options)
         config = Config()
-        config.parse_config()
+        config.parse_cli_config()
 
         crawler = crawler_class(config, get_logger())
         crawler.crawl()
@@ -321,3 +322,17 @@ class CrawlerTest(unittest.TestCase):
             return
         # TODO test gevent. Cannot use threaded simple http server :-(
         self.assertTrue(True)
+
+    def test_api(self):
+        url = self.get_url("/index.html")
+
+        site = api.crawl(url)
+        self.assertEqual(11, len(site.pages))
+        self.assertEqual(1, len(site.error_pages))
+
+    def test_api_with_options(self):
+        url = self.get_url("/index.html")
+
+        site = api.crawl_with_options([url], {"run-once": True, "workers": 2})
+        self.assertEqual(8, len(site.pages))
+        self.assertEqual(0, len(site.error_pages))
