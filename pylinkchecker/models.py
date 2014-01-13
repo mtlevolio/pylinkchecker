@@ -395,6 +395,8 @@ class SitePage(UTF8Class):
                 return "ok ({0})".format(self.status)
             elif self.status == 404:
                 return "not found (404)"
+            else:
+                return "error (status={0})".format(self.status)
         elif self.is_timeout:
             return "error (timeout)"
         elif self.exception:
