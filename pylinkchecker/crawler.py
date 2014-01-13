@@ -537,14 +537,29 @@ def open_url(open_func, request_class, url, timeout, timeout_exception,
 
 
 def execute_from_command_line():
-    start = time.time()
-    config = Config()
-    config.parse_config()
+    """Runs the crawler and retrieves the configuration from the command line."""
+    try:
+        start = time.time()
+        config = Config()
+        config.parse_cli_config()
 
-    if not config.start_urls:
-        print("At least one starting URL must be supplied.")
+        logger = configure_logger(config)
+        crawler = execute_from_config(config)
+
+        stop = time.time()
+
+        if not crawler.site.is_ok or config.options.when == WHEN_ALWAYS:
+            report(crawler.site, config, stop - start, logger)
+
+        if not crawler.site.is_ok:
+            sys.exit(1)
+    except Exception as e:
+        print(e)
         sys.exit(1)
 
+
+def configure_logger(config):
+    """Configures a logger based on the configuration."""
     if config.options.verbose == VERBOSE_QUIET:
         logging.basicConfig(level=logging.CRITICAL)
     elif config.options.verbose == VERBOSE_NORMAL:
@@ -554,6 +569,14 @@ def execute_from_command_line():
 
     logger = get_logger()
 
+    return logger
+
+
+def execute_from_config(config, logger):
+    """Executes a crawler given a config and logger."""
+    if not config.start_urls:
+        raise Exception("At least one starting URL must be supplied.")
+
     if config.options.mode == MODE_THREAD:
         crawler = ThreadSiteCrawler(config, logger)
     elif config.options.mode == MODE_PROCESS:
@@ -562,15 +585,9 @@ def execute_from_command_line():
         crawler = GreenSiteCrawler(config, logger)
 
     if not crawler:
-        print("Invalid crawling mode supplied.")
-        sys.exit(1)
+        raise Exception("Invalid crawling mode supplied.")
 
     crawler.crawl()
 
-    stop = time.time()
+    return crawler
 
-    if not crawler.site.is_ok or config.options.when == WHEN_ALWAYS:
-        report(crawler.site, config, stop - start, logger)
-
-    if not crawler.site.is_ok:
-        sys.exit(1)
