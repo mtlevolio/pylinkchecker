@@ -544,7 +544,7 @@ def execute_from_command_line():
         config.parse_cli_config()
 
         logger = configure_logger(config)
-        crawler = execute_from_config(config)
+        crawler = execute_from_config(config, logger)
 
         stop = time.time()
 
