@@ -178,7 +178,8 @@ class CrawlerTest(unittest.TestCase):
         output_queue = compat.Queue.Queue()
 
         worker_config = WorkerConfig(username=None, password=None, types=['a',
-                'img', 'link', 'script'], timeout=5, parser=PARSER_STDLIB)
+                'img', 'link', 'script'], timeout=5, parser=PARSER_STDLIB,
+                strict_mode=False)
 
         worker_init = WorkerInit(worker_config=worker_config,
                 input_queue=input_queue, output_queue=output_queue,
@@ -312,6 +313,14 @@ class CrawlerTest(unittest.TestCase):
         # 8 pages linked on the index
         self.assertEqual(8, len(site.pages))
         self.assertEqual(0, len(site.error_pages))
+
+    def test_strict_mode(self):
+        site = self._run_crawler_plain(ThreadSiteCrawler, ["--strict"])
+
+        # The placeholdit is interpreted as a relative url
+        # So 12 "good" urls and 1 bad.
+        self.assertEqual(12, len(site.pages))
+        self.assertEqual(1, len(site.error_pages))
 
     def test_site_gevent_crawler_plain(self):
         if not has_gevent():

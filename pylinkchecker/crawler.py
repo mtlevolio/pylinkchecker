@@ -360,6 +360,10 @@ class PageCrawler(object):
         for element in elements:
             if attribute in element.attrs:
                 url = element[attribute]
+
+                if not self.worker_config.strict_mode:
+                    url = url.strip()
+
                 if not is_link(url):
                     continue
                 abs_url_split = get_absolute_url_split(url, base_url_split)

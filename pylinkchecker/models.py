@@ -83,7 +83,7 @@ WorkerInit = namedtuple("WorkerInit", ["worker_config", "input_queue",
 
 
 WorkerConfig = namedtuple("WorkerConfig", ["username", "password", "types",
-        "timeout", "parser"])
+        "timeout", "parser", "strict_mode"])
 
 
 WorkerInput = namedtuple("WorkerInput", ["url_split", "should_crawl"])
@@ -213,7 +213,7 @@ class Config(UTF8Class):
                         .format(element_type))
 
         return WorkerConfig(options.username, options.password, types,
-                options.timeout, options.parser)
+                options.timeout, options.parser, options.strict_mode)
 
     def _build_accepted_hosts(self, options, start_urls):
         hosts = set()
@@ -269,6 +269,9 @@ class Config(UTF8Class):
         crawler_group.add_option("-T", "--timeout", dest="timeout",
                 type="int", action="store", default=DEFAULT_TIMEOUT,
                 help="Seconds to wait before considering that a page timed out")
+        crawler_group.add_option("-C", "--strict", dest="strict_mode",
+                action="store_true", default=False,
+                help="Does not strip href and src attributes from whitespaces")
         crawler_group.add_option("-P", "--progress", dest="progress",
                 action="store_true", default=False,
                 help="Prints crawler progress in the console")
