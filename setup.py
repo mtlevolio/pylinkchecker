@@ -24,8 +24,8 @@ pylinkchecker is a simple crawler that traverses a web sites and reports errors
 (e.g., 500 and 404 errors) encountered. The crawler can try to download
 resources like images.
     ''',
-    author='Barthelemy Dagenais',
-    author_email='bdagenais@auto123.com',
+    author='Evolio.ca, Auto123.com, Xprima.com',
+    author_email='mtl-infrastructure@auto123.com',
     license='BSD License',
     url='https://github.com/auto123/pylinkchecker',
     packages=['pylinkchecker', 'pylinkchecker.bs4', 'pylinkchecker.bs4.builder'],
