@@ -19,7 +19,7 @@ from pylinkchecker.crawler import (open_url, PageCrawler, WORK_DONE,
         ThreadSiteCrawler, ProcessSiteCrawler, get_logger)
 from pylinkchecker.models import (Config, WorkerInit, WorkerConfig, WorkerInput,
         PARSER_STDLIB)
-from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split
+from pylinkchecker.urlutil import get_clean_url_split, get_absolute_url_split, is_link
 
 
 TEST_FILES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -133,6 +133,19 @@ class URLUtilTest(unittest.TestCase):
             get_absolute_url_split("test.html", base_url_split).geturl())
         self.assertEqual("https://www.example.com/test.html",
             get_absolute_url_split("../test.html", base_url_split).geturl())
+
+    def test_is_link(self):
+        """Test if is_link return False for base64 link, internal (#) and tel"""
+
+        urls = (
+            ('/test/', True),
+            ('tel:5145555555', False),
+            ('data:testing', False),
+            ('/test/testing?test=test', True),
+        )
+
+        for url, value in urls:
+            self.assertEqual(is_link(url), value)
 
 
 

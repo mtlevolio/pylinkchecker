@@ -15,6 +15,7 @@ SUPPORTED_SCHEMES = (SCHEME_HTTP, SCHEME_HTTPS)
 NOT_LINK = [
     'data',
     '#',
+    'tel',
 ]
 
 
